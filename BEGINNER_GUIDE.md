@@ -2,7 +2,7 @@
 
 The ProofRails SDK includes powerful features designed specifically for developers with zero blockchain experience.
 
-## 🎯 Smart Auto-Detection
+##  Smart Auto-Detection
 
 The SDK automatically detects network settings from your connected wallet:
 
@@ -21,7 +21,7 @@ await send({
 });
 ```
 
-## ✅ Input Validation
+##  Input Validation
 
 Validate user inputs before sending to catch errors early:
 
@@ -52,7 +52,7 @@ if (!paymentCheck.isValid) {
 }
 ```
 
-## 💬 Friendly Error Messages
+##  Friendly Error Messages
 
 Errors are automatically converted to helpful, actionable messages:
 
@@ -64,7 +64,7 @@ try {
 } catch (error) {
     // Get structured error info
     const friendly = getFriendlyError(error);
-    console.log(friendly.title);     // "❌ Middleware Wallet Needs Funding"
+    console.log(friendly.title);     // " Middleware Wallet Needs Funding"
     console.log(friendly.message);   // Clear explanation
     console.log(friendly.solution);  // "Send 0.5-1.0 C2FLR tokens..."
     console.log(friendly.learnMore); // Link to docs
@@ -73,16 +73,16 @@ try {
     const formatted = formatErrorForDisplay(error);
     alert(formatted);
     /*
-    ❌ Middleware Wallet Needs Funding
+     Middleware Wallet Needs Funding
     Your ProofRails middleware wallet doesn't have enough tokens...
     
-    💡 Solution: Send 0.5-1.0 C2FLR tokens to your middleware wallet...
-    📖 Learn more: https://docs.proofrails.com/setup/funding
+     Solution: Send 0.5-1.0 C2FLR tokens to your middleware wallet...
+
     */
 }
 ```
 
-## 🔗 Chain Utilities
+##  Chain Utilities
 
 Helper functions for working with different networks:
 
@@ -109,7 +109,7 @@ const txUrl = getExplorerUrl(114, "0x123...");
 // "https://coston2-explorer.flare.network/tx/0x123..."
 ```
 
-## 🎨 Complete Example
+##  Complete Example
 
 Here's a full example combining all beginner-friendly features:
 
@@ -137,7 +137,7 @@ function PaymentForm() {
             // 2. Send payment (auto-detects chain & currency)
             const receipt = await send({ amount, to, purpose });
             
-            alert(`✅ Payment successful! Receipt ID: ${receipt.id}`);
+            alert(` Payment successful! Receipt ID: ${receipt.id}`);
         } catch (err) {
             // 3. Show friendly error
             alert(formatErrorForDisplay(err));
@@ -156,7 +156,7 @@ function PaymentForm() {
 }
 ```
 
-## 📚 All Validation Functions
+##  All Validation Functions
 
 - `validateAddress(address)` - Check Ethereum address format
 - `validateAmount(amount)` - Check amount is valid number > 0
@@ -165,7 +165,7 @@ function PaymentForm() {
 - `validatePurpose(text)` - Check purpose/reference text
 - `validatePayment(params)` - Validate all payment fields at once
 
-## 🌐 Supported Chains
+##  Supported Chains
 
 - **Flare** (Chain ID: 14)
   - Network: `flare`
