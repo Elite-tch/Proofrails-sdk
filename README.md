@@ -18,7 +18,7 @@ Create compliant, auditable payment receipts with just a few lines of code. No b
 ## Installation
 
 ```bash
-npm install @proofrails/sdk
+npm i @proofrails-sdk/sdk
 # or
 yarn add @proofrails/sdk
 ````
