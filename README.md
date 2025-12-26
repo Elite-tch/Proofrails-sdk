@@ -2,12 +2,15 @@ ProofRails SDK
 
 Beginner-friendly SDK for creating blockchain-verifiable ISO 20022 payment receipts
 
+
 Create compliant, auditable payment receipts with just a few lines of code. No blockchain expertise required!
 
  Features
 
 - Zero coding knowledge required** - Use simple templates
+- 
 - ISO 20022 compliant** - Generates standard banking messages
+- 
 - Blockchain-verified** - Receipts anchored on Flare blockchain
 - Tamper-proof** - Cryptographic evidence bundles
 - Real-time updates** - Live receipt status via SSE
@@ -410,4 +413,5 @@ MIT
 #   P r o o f r a i l s - s d k 
  
  
+
 
