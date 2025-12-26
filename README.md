@@ -53,7 +53,7 @@ console.log('Save this API key:', apiKey);
 ```
 
 ### Option 2: Manual
-1. Visit [https://dashboard.proofrails.com](https://dashboard.proofrails.com)
+1. Visit [https://www.flarestudio.xyz/sdk/proofrails-sdk/create-api-key](https://www.flarestudio.xyz/sdk/proofrails-sdk/create-api-key)
 2. Create a new project
 3. Copy your API key
 4. Use it in your code (see below)
