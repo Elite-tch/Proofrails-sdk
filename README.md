@@ -235,9 +235,9 @@ MIT
 
 ## Support
 
-* Documentation, [https://docs.proofrails.com](https://docs.proofrails.com)
-* Issues, [https://github.com/proofrails/proofrails-sdk/issues](https://github.com/proofrails/proofrails-sdk/issues)
-* Email, [support@proofrails.com](mailto:support@proofrails.com)
+* Documentation, [https://www.flarestudio.xyz/sdk/proofrails-sdk/overview](https://www.flarestudio.xyz/sdk/proofrails-sdk/overview)
+* Repository, [https://github.com/Elite-tch/Proofrails-sdk.git](https://github.com/Elite-tch/Proofrails-sdk.git)
+* Email, [izuchukwujohnbosco95@gmail.com](mailto:izuchukwujohnbosco95@gmail.com)
 
 **Made with ❤️ by ProofRails**
 
