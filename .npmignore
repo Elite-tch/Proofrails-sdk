@@ -1,0 +1,17 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Build configs
+tsconfig.json
+tsup.config.ts
+
+# Development
+node_modules/
+examples/
+*.test.ts
+*.spec.ts
+
+# Docs
+BEGINNER_GUIDE.md
