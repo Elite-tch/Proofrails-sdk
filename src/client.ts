@@ -24,7 +24,11 @@ export class APIClient {
     constructor(config: SDKConfig = {}) {
         // Read from environment variable if available (Next.js)
         const envBaseUrl = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PROOFRAILS_BASE_URL;
-        this.baseUrl = config.baseUrl || envBaseUrl || 'http://127.0.0.1:8000';
+
+        // Production API endpoint
+        const defaultBaseUrl = 'https://proofrails-clone-middleware.onrender.com';
+
+        this.baseUrl = config.baseUrl || envBaseUrl || defaultBaseUrl;
         this.apiKey = config.apiKey;
         this.adminToken = config.adminToken;
         this.timeout = config.timeout || 30000;

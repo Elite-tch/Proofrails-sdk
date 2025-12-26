@@ -15,13 +15,48 @@ Create compliant, auditable payment receipts with just a few lines of code. No b
 - **Real time updates**, live receipt status via SSE  
 - **Works everywhere**, TypeScript, JavaScript, Node.js, browsers  
 
+## 🚀 Zero Configuration Required
+
+The SDK automatically connects to our production middleware. **No backend setup needed!**
+
+- ✅ Just install and use
+- ✅ Automatic API endpoint configuration
+- ✅ Built-in retry logic and error handling
+- ✅ Production-ready out of the box
+
+
 ## Installation
 
 ```bash
-npm i @proofrails-sdk/sdk
+npm install @proofrails/sdk
 # or
 yarn add @proofrails/sdk
-````
+# or
+pnpm add @proofrails/sdk
+```
+
+## Getting Your API Key
+
+Before using the SDK, you need an API key:
+
+### Option 1: Automatic (Recommended for Beginners)
+```javascript
+import ProofRails from '@proofrails/sdk';
+
+// Creates a new project and returns your API key
+const { client, apiKey, projectId } = await ProofRails.createProject({
+  label: 'My App'
+});
+
+console.log('Save this API key:', apiKey);
+// Use the client that's already configured
+```
+
+### Option 2: Manual
+1. Visit [https://dashboard.proofrails.com](https://dashboard.proofrails.com)
+2. Create a new project
+3. Copy your API key
+4. Use it in your code (see below)
 
 ## Quick Start
 
