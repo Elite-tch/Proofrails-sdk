@@ -18,6 +18,8 @@ export interface APIKey {
 
 export interface CreateProjectOptions {
     label?: string;
+    network?: 'coston2' | 'flare';
+    baseUrl?: string;
 }
 
 export interface CreateAPIKeyOptions {

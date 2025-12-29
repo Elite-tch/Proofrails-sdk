@@ -30,6 +30,8 @@ export interface Receipt {
     anchorTx?: string;
     bundleHash?: string;
     projectId?: string;
+    bundleUrl?: string; // from API
+    xmlUrl?: string;    // from API
     // UI Helpers
     onChain?: boolean;
     valid?: boolean;

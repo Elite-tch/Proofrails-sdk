@@ -14,8 +14,8 @@ export class VerificationModule {
         return {
             valid: receipt.status === 'anchored',
             bundleHash: receipt.bundle_hash || receipt.bundleHash || '',
-            onChain: !!receipt.anchor_tx || !!receipt.anchorTx,
-            anchorTx: receipt.anchor_tx || receipt.anchorTx,
+            onChain: !!(receipt.flare_txid || receipt.anchor_tx || receipt.anchorTx),
+            anchorTx: receipt.flare_txid || receipt.anchor_tx || receipt.anchorTx,
             timestamp: receipt.anchored_at || receipt.anchoredAt,
         };
     }

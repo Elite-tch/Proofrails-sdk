@@ -228,6 +228,64 @@ const listener = proofrails.events.listen('receipt-id', update => {
 });
 ```
 
+## React Integration (Hooks)
+
+The SDK includes built-in React hooks for easy integration:
+
+### 1. Wrap your app with `ProofRailsProvider`
+
+```javascript
+// app/providers.tsx
+'use client';
+
+import { ProofRailsProvider } from '@proofrails/sdk/react';
+
+export function Providers({ children }) {
+  // Option 1: Env var (recommended)
+  // PROOFRAILS_API_KEY must be set in .env.local
+  // NEXT_PUBLIC_PROOFRAILS_BASE_URL (optional)
+  return (
+    <ProofRailsProvider apiKey={process.env.NEXT_PUBLIC_PROOFRAILS_API_KEY}>
+      {children}
+    </ProofRailsProvider>
+  );
+}
+```
+
+### 2. Use Hooks in Components
+
+```javascript
+// app/payment/page.tsx
+'use client';
+
+import { useProofRailsPayment } from '@proofrails/sdk/react';
+
+export default function PaymentPage() {
+  const { createPayment, isLoading, error, receipt } = useProofRailsPayment();
+
+  const handlePay = async () => {
+    try {
+      await createPayment({
+        amount: 100,
+        from: '0x123...',
+        to: '0x456...',
+        purpose: 'Coffee',
+        transactionHash: '0xabc...'
+      });
+      alert('Receipt Created!');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <button onClick={handlePay} disabled={isLoading}>
+      {isLoading ? 'Processing...' : 'Create Receipt'}
+    </button>
+  );
+}
+```
+
 ## Embeddable Widgets
 
 ### Generate Widget

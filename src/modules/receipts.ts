@@ -47,7 +47,25 @@ export class ReceiptsModule {
     }
 
     async get(receiptId: string): Promise<Receipt> {
-        return this.client.get<Receipt>(`/v1/iso/receipts/${receiptId}`);
+        const response = await this.client.get<any>(`/v1/iso/receipts/${receiptId}`);
+        return {
+            id: response.id,
+            status: response.status,
+            transactionHash: response.tip_tx_hash || response.transactionHash,
+            chain: response.chain,
+            amount: response.amount,
+            currency: response.currency,
+            sender: response.sender_wallet || response.sender,
+            receiver: response.receiver_wallet || response.receiver,
+            reference: response.reference,
+            createdAt: response.created_at || response.createdAt,
+            anchoredAt: response.anchored_at || response.anchoredAt,
+            anchorTx: response.flare_txid || response.anchorTx,
+            bundleHash: response.bundle_hash || response.bundleHash,
+            bundleUrl: response.bundle_url,
+            xmlUrl: response.xml_url,
+            projectId: response.project_id
+        };
     }
 
     async list(options: ListReceiptsOptions = {}): Promise<PaginatedResponse<Receipt>> {
