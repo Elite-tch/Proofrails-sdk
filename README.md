@@ -1,4 +1,4 @@
-```md
+
 # ProofRails SDK
 
 **Beginner friendly SDK for creating blockchain verifiable ISO 20022 payment receipts**
@@ -333,4 +333,3 @@ MIT
 
 **Made with ❤️ by ProofRails**
 
-```
