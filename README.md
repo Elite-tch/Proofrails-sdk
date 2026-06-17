@@ -1,5 +1,5 @@
 
-````md
+
 # ProofRails SDK
 
 **Beginner friendly SDK for creating blockchain verifiable ISO 20022 payment receipts**
@@ -115,7 +115,7 @@ const receipt = await proofrails.templates.donation({
 
 ### Escrow Release
 
-```javascript
+javascript
 const receipt = await proofrails.templates.escrow({
   amount: 1000,
   buyer: 'Alice',
@@ -124,11 +124,11 @@ const receipt = await proofrails.templates.escrow({
   releaseReason: 'Milestone 1 completed',
   transactionHash: '0x789...'
 });
-```
+
 
 ### Grant Disbursement
 
-```javascript
+javascript
 const receipt = await proofrails.templates.grant({
   amount: 5000,
   grantee: 'Research Lab',
@@ -137,7 +137,7 @@ const receipt = await proofrails.templates.grant({
   purpose: 'Climate change research',
   transactionHash: '0xabc...'
 });
-```
+
 
 ### Refund
 
@@ -333,5 +333,3 @@ MIT
 * Email, [izuchukwujohnbosco95@gmail.com](mailto:izuchukwujohnbosco95@gmail.com)
 
 **Made with ❤️ by ProofRails**
-
-```
