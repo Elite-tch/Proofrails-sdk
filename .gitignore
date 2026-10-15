@@ -4,3 +4,5 @@ dist
 .DS_Store
 /middleware-ISO-v2.2-and-x402
 .env
+.npm-cache
+flarestudio
