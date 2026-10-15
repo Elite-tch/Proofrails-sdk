@@ -4,6 +4,12 @@
 
 import type { Network } from '../types/common';
 
+export interface ChainContracts {
+    evidenceAnchor: string;
+    x402Facilitator?: string;
+    usdt0?: string;
+}
+
 export interface ChainInfo {
     id: number;
     name: string;
@@ -11,6 +17,7 @@ export interface ChainInfo {
     currency: string;
     rpcUrl: string;
     explorerUrl: string;
+    contracts: ChainContracts;
 }
 
 export const SUPPORTED_CHAINS: Record<number, ChainInfo> = {
@@ -20,7 +27,12 @@ export const SUPPORTED_CHAINS: Record<number, ChainInfo> = {
         network: 'flare',
         currency: 'FLR',
         rpcUrl: 'https://flare-api.flare.network/ext/C/rpc',
-        explorerUrl: 'https://flare-explorer.flare.network'
+        explorerUrl: 'https://flare-explorer.flare.network',
+        contracts: {
+            evidenceAnchor: '0x235f83a74fc9D759D648eC533d2c06712F3Ca5EA',
+            x402Facilitator: '0xa78F15ee5a1Ff1D89F6AD782a5f9b81f7C2aA4aE',
+            usdt0: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D',
+        }
     },
     114: {
         id: 114,
@@ -28,7 +40,10 @@ export const SUPPORTED_CHAINS: Record<number, ChainInfo> = {
         network: 'coston2',
         currency: 'C2FLR',
         rpcUrl: 'https://coston2-api.flare.network/ext/C/rpc',
-        explorerUrl: 'https://coston2-explorer.flare.network'
+        explorerUrl: 'https://coston2-explorer.flare.network',
+        contracts: {
+            evidenceAnchor: '0x0690d8cFb1897c12B2C0b34660edBDE4E20ff4d8',
+        }
     }
 };
 
@@ -40,6 +55,20 @@ export function detectNetwork(chainId?: number): Network {
 
     const chain = SUPPORTED_CHAINS[chainId];
     return chain?.network || 'coston2';
+}
+
+/**
+ * Alias for detectNetwork
+ */
+export const detectNetworkFromChainId = detectNetwork;
+
+/**
+ * Get EvidenceAnchor contract address for a given chain ID or network name
+ */
+export function getContractAddress(chain: number | Network): string {
+    const chainId = typeof chain === 'number' ? chain : (chain === 'flare' ? 14 : 114);
+    const info = SUPPORTED_CHAINS[chainId];
+    return info?.contracts?.evidenceAnchor || '';
 }
 
 /**
@@ -69,19 +98,21 @@ export function isSupportedChain(chainId: number): boolean {
 /**
  * Get explorer URL for transaction
  */
-export function getExplorerUrl(chainId: number, txHash: string): string {
-    const chain = SUPPORTED_CHAINS[chainId];
-    if (!chain) return '';
+export function getExplorerUrl(chain: number | Network, txHash: string): string {
+    const chainId = typeof chain === 'number' ? chain : (chain === 'flare' ? 14 : 114);
+    const info = SUPPORTED_CHAINS[chainId];
+    if (!info) return '';
 
-    return `${chain.explorerUrl}/tx/${txHash}`;
+    return `${info.explorerUrl}/tx/${txHash}`;
 }
 
 /**
  * Get explorer URL for address
  */
-export function getAddressExplorerUrl(chainId: number, address: string): string {
-    const chain = SUPPORTED_CHAINS[chainId];
-    if (!chain) return '';
+export function getAddressExplorerUrl(chain: number | Network, address: string): string {
+    const chainId = typeof chain === 'number' ? chain : (chain === 'flare' ? 14 : 114);
+    const info = SUPPORTED_CHAINS[chainId];
+    if (!info) return '';
 
-    return `${chain.explorerUrl}/address/${address}`;
+    return `${info.explorerUrl}/address/${address}`;
 }

@@ -13,6 +13,12 @@ export interface CreateReceiptOptions {
     receiver: string;
     reference: string;
     callbackUrl?: string;
+    /** Free-form context retained with the receipt and webhook events. */
+    metadata?: Record<string, unknown>;
+    /** Labels used when filtering receipts. */
+    tags?: string[];
+    /** Client-generated key for safe retrying of write requests. */
+    idempotencyKey?: string;
 }
 
 export interface Receipt {
@@ -30,6 +36,9 @@ export interface Receipt {
     anchorTx?: string;
     bundleHash?: string;
     projectId?: string;
+    operationId?: string;
+    metadata?: Record<string, unknown>;
+    tags?: string[];
     bundleUrl?: string; // from API
     xmlUrl?: string;    // from API
     // UI Helpers
@@ -48,9 +57,18 @@ export interface ReceiptArtifacts {
 }
 
 export interface ListReceiptsOptions {
+    /** Legacy alias for pageSize. */
     limit?: number;
     page?: number;
+    pageSize?: number;
     status?: ReceiptStatus;
+    chain?: Network;
+    reference?: string;
+    since?: string;
+    until?: string;
+    tags?: string[];
+    scope?: 'mine' | 'all';
+    cursor?: string;
 }
 
 export interface ReceiptUpdate {

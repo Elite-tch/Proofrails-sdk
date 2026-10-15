@@ -151,11 +151,10 @@ export const useCreateProject = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
-    const create = async (label: string, network?: string) => {
+    const create = async (options: { name?: string; label?: string; message: string; signature: string; network?: string }) => {
         setLoading(true);
         try {
-            // Type cast network to any or specific type if needed
-            const result = await ProofRails.createProject({ label, network: network as any });
+            const result = await ProofRails.createProject(options);
             return result;
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Failed to create project'));

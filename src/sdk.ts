@@ -9,6 +9,10 @@ import { VerificationModule } from './modules/verification';
 import { StatementsModule } from './modules/statements';
 import { EventsModule } from './modules/events';
 import { EmbedModule } from './modules/embed';
+import { AnchoringModule } from './modules/anchoring';
+import { X402Module } from './modules/x402';
+import { AgentsModule } from './modules/agents';
+import { PlatformModule } from './modules/platform';
 import {
     createPaymentReceipt,
     createDonationReceipt,
@@ -17,7 +21,6 @@ import {
     createRefundReceipt,
 } from './templates';
 import type { SDKConfig, Network } from './types/common';
-import type { APIKey } from './types/project';
 import type {
     PaymentTemplateOptions,
     DonationTemplateOptions,
@@ -50,6 +53,18 @@ export class ProofRails {
     /** Embeddable widgets */
     public readonly embed: EmbedModule;
 
+    /** Receipt-anchor queries and tenant anchoring confirmation. */
+    public readonly anchors: AnchoringModule;
+
+    /** x402 payment discovery and request-header helpers. */
+    public readonly x402: X402Module;
+
+    /** Autonomous-agent management and agent-data anchoring. */
+    public readonly agents: AgentsModule;
+
+    /** Webhooks, wallet monitoring, AI, Flare, auth, and operations endpoints. */
+    public readonly platform: PlatformModule;
+
     /** Beginner-friendly templates */
     public readonly templates: {
         payment: (options: PaymentTemplateOptions) => ReturnType<typeof createPaymentReceipt>;
@@ -69,6 +84,10 @@ export class ProofRails {
         this.statements = new StatementsModule(this.client);
         this.events = new EventsModule(this.client);
         this.embed = new EmbedModule(this.client);
+        this.anchors = new AnchoringModule(this.client);
+        this.x402 = new X402Module(this.client);
+        this.agents = new AgentsModule(this.client);
+        this.platform = new PlatformModule(this.client);
 
         this.templates = {
             payment: (options) => createPaymentReceipt(this.receipts, options),
@@ -84,15 +103,18 @@ export class ProofRails {
      * This is a convenience method for beginners
      */
     static async createProject(options: {
+        name?: string;
         label?: string;
+        message: string;
+        signature: string;
         network?: Network;
         baseUrl?: string;
-    } = {}): Promise<{ client: ProofRails; apiKey: string; projectId: string }> {
+    }): Promise<{ client: ProofRails; apiKey: string; projectId: string }> {
         const tempClient = new ProofRails({ network: options.network, baseUrl: options.baseUrl });
-        const result = await tempClient.project.create({ label: options.label }) as any;
+        const result = await tempClient.project.create({ name: options.name, label: options.label, message: options.message, signature: options.signature });
 
-        const apiKey = result.api_key || result.apiKey;
-        const projectId = result.project_id || result.projectId;
+        const apiKey = result.apiKey;
+        const projectId = result.projectId;
 
         const client = new ProofRails({
             apiKey,

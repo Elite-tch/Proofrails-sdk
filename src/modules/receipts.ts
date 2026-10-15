@@ -25,11 +25,13 @@ export class ReceiptsModule {
             receiver_wallet: options.receiver,
             reference: options.reference,
             callback_url: options.callbackUrl,
+            metadata: options.metadata,
+            tags: options.tags,
         };
 
-        const response = await this.client.post<{ receipt_id: string; status: string }>(
-            '/v1/iso/record-tip',
-            payload
+        const response = await this.client.post<{ receipt_id: string; status: string; operation_id?: string }>(
+            '/v1/iso/record-tip', payload,
+            options.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : {}
         );
 
         return {
@@ -43,6 +45,7 @@ export class ReceiptsModule {
             receiver: options.receiver,
             reference: options.reference,
             createdAt: new Date().toISOString(),
+            operationId: response.operation_id || response.receipt_id,
         };
     }
 
@@ -70,22 +73,29 @@ export class ReceiptsModule {
 
     async list(options: ListReceiptsOptions = {}): Promise<PaginatedResponse<Receipt>> {
         const params = new URLSearchParams();
-        if (options.limit) params.append('limit', String(options.limit));
         if (options.page) params.append('page', String(options.page));
+        params.append('page_size', String(options.pageSize || options.limit || 20));
         if (options.status) params.append('status', options.status);
+        if (options.chain) params.append('chain', options.chain);
+        if (options.reference) params.append('reference', options.reference);
+        if (options.since) params.append('since', options.since);
+        if (options.until) params.append('until', options.until);
+        if (options.tags?.length) params.append('tags', options.tags.join(','));
+        if (options.scope) params.append('scope', options.scope);
+        if (options.cursor) params.append('cursor', options.cursor);
 
         const query = params.toString();
-        const endpoint = `/v1/iso/receipts${query ? `?${query}` : ''}`;
+        const endpoint = `/v1/receipts${query ? `?${query}` : ''}`;
 
         // Check if response is array (direct list) or object (paginated)
         const response: any = await this.client.get(endpoint);
         const items = Array.isArray(response) ? response : (response.items || []);
 
         return {
-            items: items,
-            total: items.length,
-            page: options.page || 1,
-            limit: options.limit || 10,
+            items: items.map((item: any) => this.toReceipt(item)),
+            total: Array.isArray(response) ? items.length : response.total,
+            page: Array.isArray(response) ? (options.page || 1) : response.page,
+            limit: Array.isArray(response) ? (options.limit || 20) : response.page_size,
         };
     }
 
@@ -115,9 +125,41 @@ export class ReceiptsModule {
             }
         });
 
-        artifacts.bundleUrl = `${baseUrl}/files/${receiptId}/evidence.zip`;
+        const receipt = await this.client.get<any>(`/v1/iso/receipts/${receiptId}`);
+        artifacts.bundleUrl = receipt.bundle_url || `${baseUrl}/files/${receiptId}/evidence.zip`;
         artifacts.manifestUrl = `${baseUrl}/files/${receiptId}/manifest.json`;
 
         return artifacts;
+    }
+
+    /** Poll the lightweight status endpoint while a receipt is processing. */
+    async getStatus(receiptId: string): Promise<Pick<Receipt, 'id' | 'status' | 'bundleHash' | 'anchorTx' | 'anchoredAt'>> {
+        const response = await this.client.get<any>(`/v1/iso/receipts/${receiptId}/status`);
+        return { id: response.id, status: response.status, bundleHash: response.bundle_hash, anchorTx: response.flare_txid, anchoredAt: response.anchored_at };
+    }
+
+    /** Re-queue a failed receipt for platform anchoring. */
+    async retryAnchor(receiptId: string): Promise<{ id: string; status: Receipt['status'] }> {
+        return this.client.post(`/v1/iso/receipts/${receiptId}/retry-anchor`);
+    }
+
+    private toReceipt(response: any): Receipt {
+        return {
+            id: response.id,
+            status: response.status,
+            transactionHash: response.tip_tx_hash || response.transactionHash || '',
+            chain: response.chain,
+            amount: String(response.amount),
+            currency: response.currency,
+            sender: response.sender_wallet || response.sender || '',
+            receiver: response.receiver_wallet || response.receiver || '',
+            reference: response.reference,
+            createdAt: response.created_at || response.createdAt,
+            anchoredAt: response.anchored_at || response.anchoredAt,
+            anchorTx: response.flare_txid || response.anchorTx,
+            bundleHash: response.bundle_hash || response.bundleHash,
+            metadata: response.metadata,
+            tags: response.tags,
+        };
     }
 }

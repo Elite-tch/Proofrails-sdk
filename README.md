@@ -1,337 +1,325 @@
-
-````md
 # ProofRails SDK
 
-**Beginner friendly SDK for creating blockchain verifiable ISO 20022 payment receipts**
+**TypeScript & JavaScript SDK for creating blockchain-verifiable ISO 20022 payment records, cryptographic evidence bundles, and Flare on-chain anchors.**
 
-Create compliant, auditable payment receipts with just a few lines of code. No blockchain expertise required.
+ProofRails converts on-chain payment transactions and agentic payments into banking-standard ISO 20022 XML messages (pain.001, pacs.008, camt.052, camt.053, and more), packages them into tamper-proof evidence ZIP bundles, and anchors their cryptographic hashes on Flare for trustless verification.
 
-## Features
+---
 
-- **Zero coding knowledge required**, use simple templates  
-- **ISO 20022 compliant**, generates standard banking messages  
-- **Blockchain verified**, receipts anchored on Flare blockchain  
-- **Tamper proof**, cryptographic evidence bundles  
-- **Real time updates**, live receipt status via SSE  
-- **Works everywhere**, TypeScript, JavaScript, Node.js, browsers  
+## Key Capabilities
 
-## 🚀 Zero Configuration Required
+* **ISO 20022 Compliant**: Generates 15 standard banking XML message types directly from on-chain transaction hashes.
+* **On-Chain Verification**: Evidence bundles are cryptographically anchored to the Flare EvidenceAnchor smart contract.
+* **Beginner-Friendly Templates**: Create payment, donation, escrow, grant, and refund receipts in 3 lines of code.
+* **Autonomous AI Agents**: Register AI agents, parse natural language commands, and anchor operational audit data on-chain.
+* **x402 Micropayments**: Native HTTP 402 payment-gated access using USDC on Base or FLR on Flare.
+* **Banking Statements**: Export official intraday (camt.052) and end-of-day (camt.053) account balance reports.
+* **Flare Native AI & FTSO**: Live decentralized price feeds and Flare Data Connector (FDC) Merkle attestations.
+* **Real-Time Push Events**: Subscribe to Server-Sent Events (SSE) to track receipt anchoring in real time.
+* **React Hooks**: Built-in `useReceipt`, `useReceipts`, `useVerifyReceipt`, and `useX402Payment` for modern web apps.
 
-The SDK automatically connects to our production middleware. **No backend setup needed!**
-
-- ✅ Just install and use
-- ✅ Automatic API endpoint configuration
-- ✅ Built-in retry logic and error handling
-- ✅ Production-ready out of the box
-
+---
 
 ## Installation
 
 ```bash
-npm install @proofrails/sdk
+npm install @proofrails/sdk viem
 # or
-yarn add @proofrails/sdk
+pnpm add @proofrails/sdk viem
 # or
-pnpm add @proofrails/sdk
+yarn add @proofrails/sdk viem
 ```
 
-## Getting Your API Key
+---
 
-Before using the SDK, you need an API key:
+## Getting Started
 
-### Option 1: Automatic (Recommended for Beginners)
-```javascript
-import ProofRails from '@proofrails/sdk';
+### Backend Prerequisite
+> **Note**: This SDK is the client library. It connects to a ProofRails Middleware backend instance that you run or deploy yourself. We do not provide or host a shared public backend.
+>
+> To set up your middleware backend, follow the instructions in the official repository:  
+> [https://github.com/proofrails/middleware-ISO-v2.2-and-x402](https://github.com/proofrails/middleware-ISO-v2.2-and-x402)
 
-// Creates a new project and returns your API key
-const { client, apiKey, projectId } = await ProofRails.createProject({
-  label: 'My App'
-});
+### Initialize the Client
 
-console.log('Save this API key:', apiKey);
-// Use the client that's already configured
-```
+Point the SDK to your self-hosted or local middleware instance:
 
-### Option 2: Manual
-1. Visit [https://www.flarestudio.xyz/sdk/proofrails-sdk/create-api-key](https://www.flarestudio.xyz/sdk/proofrails-sdk/create-api-key)
-2. Create a new project
-3. Copy your API key
-4. Use it in your code (see below)
-
-## Quick Start
-
-### Option 1, Create New Project (Easiest)
-
-```javascript
-import ProofRails from '@proofrails/sdk';
-
-// Create a new project automatically
-const { client, apiKey, projectId } = await ProofRails.createProject({
-  label: 'My App'
-});
-
-console.log('Your API Key:', apiKey); // Save this
-console.log('Your Project ID:', projectId);
-```
-
-### Option 2, Use Existing API Key
-
-```javascript
-import ProofRails from '@proofrails/sdk';
+```typescript
+import { ProofRails } from '@proofrails/sdk';
 
 const proofrails = new ProofRails({
-  apiKey: 'your-api-key-here'
+  // Point to your deployed or local ProofRails middleware instance
+  baseUrl: process.env.PROOFRAILS_BASE_URL || 'http://127.0.0.1:8000',
+  apiKey: process.env.PROOFRAILS_API_KEY || 'proofrails-local-dev-key',
+  network: 'coston2', // 'coston2' (testnet) or 'flare' (mainnet)
 });
 ```
 
-## Templates (Beginner Friendly)
+---
+
+## Beginner Templates
+
+Templates provide high-level abstractions that handle formatting and smart defaults automatically.
 
 ### Payment Receipt
-
-```javascript
+```typescript
 const receipt = await proofrails.templates.payment({
-  amount: 100,
+  amount: 150.00,
   from: 'Alice',
   to: 'Bob',
-  purpose: 'Freelance web development',
-  transactionHash: '0x123...'
+  purpose: 'Freelance Design Milestone',
+  transactionHash: '0x3a4b5c6d...',
+  senderWallet: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+  receiverWallet: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+  currency: 'C2FLR',
 });
 
 console.log('Receipt ID:', receipt.id);
-console.log('Status:', receipt.status);
+console.log('Status:', receipt.status); // 'pending'
 ```
 
 ### Donation Receipt
-
-```javascript
-const receipt = await proofrails.templates.donation({
-  amount: 50,
-  donor: 'John Doe',
-  organization: 'Red Cross',
-  campaign: 'Disaster Relief 2024',
-  transactionHash: '0x456...'
+```typescript
+const donation = await proofrails.templates.donation({
+  amount: 50.00,
+  donor: 'Anonymous',
+  recipient: 'Open Source Security Initiative',
+  cause: 'Annual Maintenance Fund',
+  transactionHash: '0x811b72...',
 });
 ```
 
-### Escrow Release
-
-```javascript
-const receipt = await proofrails.templates.escrow({
-  amount: 1000,
-  buyer: 'Alice',
-  seller: 'Bob',
-  escrowId: 'ESC-2024-001',
-  releaseReason: 'Milestone 1 completed',
-  transactionHash: '0x789...'
+### Escrow Release Receipt
+```typescript
+const escrow = await proofrails.templates.escrow({
+  amount: 1000.00,
+  buyer: 'Acme Corp',
+  seller: 'Contractor LLC',
+  escrowId: 'ESC-2026-001',
+  releaseReason: 'Milestone 2 QA Approved',
+  transactionHash: '0x7890ab...',
 });
 ```
 
-### Grant Disbursement
-
-```javascript
-const receipt = await proofrails.templates.grant({
-  amount: 5000,
-  grantee: 'Research Lab',
-  grantor: 'Science Foundation',
-  grantId: 'GR-2024-001',
-  purpose: 'Climate change research',
-  transactionHash: '0xabc...'
-});
-```
-
-### Refund
-
-```javascript
-const receipt = await proofrails.templates.refund({
-  amount: 25,
-  originalPayment: 'receipt-id-123',
-  reason: 'Product returned',
-  customer: 'Jane Smith',
-  transactionHash: '0xdef...'
-});
-```
+---
 
 ## Core Operations
 
-### Get Receipt
-
-```javascript
-const receipt = await proofrails.receipts.get('receipt-id');
-
-console.log(receipt.status);
-console.log(receipt.amount);
-console.log(receipt.anchorTx);
+### Create Detailed Receipt
+```typescript
+const receipt = await proofrails.receipts.create({
+  transactionHash: '0x94821a4f00b9472e90c741e12d48ef01c590ad2768564177bc901e18b84310a2',
+  chain: 'coston2',
+  amount: 2500.50,
+  currency: 'USDC',
+  sender: '0x1111111111111111111111111111111111111111',
+  receiver: '0x2222222222222222222222222222222222222222',
+  reference: 'INV-OCT-2026-88',
+  tags: ['enterprise', 'q4-payroll'],
+  idempotencyKey: 'payroll-batch-001-tx-12',
+});
 ```
 
 ### List Receipts
-
-```javascript
+```typescript
 const { items, total } = await proofrails.receipts.list({
   limit: 10,
-  status: 'anchored'
+  tags: ['enterprise'],
+  status: 'anchored',
 });
 
-items.forEach(r => {
-  console.log(r.id, r.amount);
-});
+console.log(`Found ${total} receipts`);
 ```
 
-### Download Artifacts
+### Get Receipt Details & Status
+```typescript
+// Full receipt details
+const details = await proofrails.receipts.get(receiptId);
+console.log(details.amount, details.currency, details.sender, details.receiver);
 
-```javascript
-const artifacts = await proofrails.receipts.getArtifacts('receipt-id');
-
-console.log('ISO XML:', artifacts.pain001Url);
-console.log('Bundle:', artifacts.bundleUrl);
-console.log('Manifest:', artifacts.manifestUrl);
+// Lightweight status check (ideal for polling loops)
+const statusInfo = await proofrails.receipts.getStatus(receiptId);
+console.log(statusInfo.status, statusInfo.bundleHash);
 ```
 
-## Verification
+### Download ISO 20022 Artifacts
+```typescript
+const artifacts = await proofrails.receipts.getArtifacts(receiptId);
 
-### Verify Receipt
+console.log('pain.001 XML:', artifacts.pain001Url);
+console.log('camt.054 XML:', artifacts.camt054Url);
+console.log('Evidence ZIP Bundle:', artifacts.bundleUrl);
+console.log('Manifest JSON:', artifacts.manifestUrl);
+```
 
-```javascript
-const verification = await proofrails.verify.byReceiptId('receipt-id');
+---
 
-if (verification.valid && verification.onChain) {
-  console.log('Receipt is valid and on chain');
-  console.log('Anchor TX:', verification.anchorTx);
+## Cryptographic Verification
+
+### Verify On-Chain
+```typescript
+// Verify by Receipt ID
+const result = await proofrails.verify.byReceiptId(receiptId);
+
+if (result.valid) {
+  console.log('Verified on Flare!');
+  console.log('Anchor Transaction:', result.anchorTx);
+  console.log('Bundle Hash:', result.bundleHash);
 }
+
+// Verify by Bundle Hash directly
+const hashResult = await proofrails.verify.byHash('0xbbddce647bfe...');
 ```
 
-### Verify by Bundle Hash
-
-```javascript
-const verification = await proofrails.verify.byHash('0x123...');
+### IPFS / Arweave Verification
+```typescript
+const decentralizedResult = await proofrails.verify.byCid({
+  cid: 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi',
+  store: 'ipfs',
+});
 ```
 
-### Get Verification Proof
+---
 
-```javascript
-const proof = await proofrails.verify.getProof('receipt-id');
+## Autonomous AI Agents
 
-console.log('Bundle Hash:', proof.bundleHash);
-console.log('Block Number:', proof.blockNumber);
-console.log('Timestamp:', proof.timestamp);
+```typescript
+// 1. Register an autonomous agent
+const agent = await proofrails.agents.create({
+  name: 'Invoice Reconciliation Bot',
+  walletAddress: '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
+  pricingRules: { reconcile: '0.05' },
+});
+
+// 2. Anchor arbitrary agent operations on-chain
+const anchor = await proofrails.agents.anchorData(
+  agent.id,
+  {
+    action: 'BATCH_RECONCILE',
+    itemsProcessed: 42,
+    timestamp: Date.now(),
+  },
+  {
+    description: 'Daily Ledger Reconciliation Log',
+    submitOnchain: true,
+  }
+);
+
+console.log('Anchored Tx:', anchor.flare_txid);
 ```
 
-## Live Updates
+---
 
-```javascript
-const listener = proofrails.events.listen('receipt-id', update => {
-  console.log('Status:', update.status);
+## x402 Pay-Per-Request Protocol
+
+```typescript
+// 1. Check endpoint pricing
+const prices = await proofrails.x402.pricing();
+
+// 2. Serialize proof for HTTP header
+const paymentHeader = proofrails.x402.paymentHeader({
+  txHash: '0xabc123...',
+  amount: '0.01',
+  recipient: '0x1234567890123456789012345678901234567890',
+  currency: 'USDC',
+  chain: 'base',
+});
+
+// 3. Call premium operations
+const fx = await proofrails.x402.premiumFxLookup(
+  {
+    txHash: '0xabc123...',
+    amount: '0.01',
+    recipient: '0x1234567890123456789012345678901234567890',
+  },
+  { baseCcy: 'USD', quoteCcy: 'FLR' }
+);
+```
+
+---
+
+## Financial Statements (ISO 20022)
+
+```typescript
+// Export official end-of-day statement (camt.053)
+const statement = await proofrails.statements.endOfDay({
+  dateFrom: '2026-10-14',
+  xPayment: paymentHeader,
+});
+
+console.log('ISO camt.053 XML:', statement.xml);
+console.log('Transactions Count:', statement.count);
+```
+
+---
+
+## Real-Time SSE Events
+
+```typescript
+const subscription = proofrails.events.listen(receiptId, (update) => {
+  console.log('Live Status Update:', update.status);
 
   if (update.status === 'anchored') {
-    console.log('Receipt is now on chain');
-    listener.stop();
+    console.log('Confirmed on Flare:', update.anchorTx);
+    subscription.stop();
   }
 });
 ```
 
-## React Integration (Hooks)
+---
 
-The SDK includes built-in React hooks for easy integration:
+## React Integration
 
-### 1. Wrap your app with `ProofRailsProvider`
+Wrap your app in `ProofRailsProvider` to use declarative hooks in your frontend components:
 
-```javascript
-// app/providers.tsx
-'use client';
+```tsx
+import React from 'react';
+import { ProofRailsProvider, useReceipt, useVerifyReceipt } from '@proofrails/sdk/react';
 
-import { ProofRailsProvider } from '@proofrails/sdk/react';
-
-export function Providers({ children }) {
-  // Option 1: Env var (recommended)
-  // PROOFRAILS_API_KEY must be set in .env.local
-  // NEXT_PUBLIC_PROOFRAILS_BASE_URL (optional)
+export function App() {
   return (
-    <ProofRailsProvider apiKey={process.env.NEXT_PUBLIC_PROOFRAILS_API_KEY}>
-      {children}
+    <ProofRailsProvider
+      config={{
+        baseUrl: 'http://127.0.0.1:8000',
+        apiKey: 'proofrails-local-dev-key',
+      }}
+    >
+      <ReceiptView receiptId="ce620107-5389-432e-b2ad-ab80886402fb" />
     </ProofRailsProvider>
   );
 }
-```
 
-### 2. Use Hooks in Components
+function ReceiptView({ receiptId }: { receiptId: string }) {
+  const { receipt, isLoading } = useReceipt(receiptId);
+  const { verify, isVerifying, result } = useVerifyReceipt();
 
-```javascript
-// app/payment/page.tsx
-'use client';
-
-import { useProofRailsPayment } from '@proofrails/sdk/react';
-
-export default function PaymentPage() {
-  const { createPayment, isLoading, error, receipt } = useProofRailsPayment();
-
-  const handlePay = async () => {
-    try {
-      await createPayment({
-        amount: 100,
-        from: '0x123...',
-        to: '0x456...',
-        purpose: 'Coffee',
-        transactionHash: '0xabc...'
-      });
-      alert('Receipt Created!');
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  if (isLoading) return <div>Loading...</div>;
+  if (!receipt) return null;
 
   return (
-    <button onClick={handlePay} disabled={isLoading}>
-      {isLoading ? 'Processing...' : 'Create Receipt'}
-    </button>
+    <div>
+      <h3>{receipt.reference}</h3>
+      <p>{receipt.amount} {receipt.currency}</p>
+      <button onClick={() => verify(receiptId)} disabled={isVerifying}>
+        {isVerifying ? 'Verifying...' : 'Verify on Flare'}
+      </button>
+      {result && <p>Valid: {result.valid ? 'Yes' : 'No'}</p>}
+    </div>
   );
 }
 ```
 
-## Embeddable Widgets
+---
 
-### Generate Widget
+## Repository & Contributing
 
-```javascript
-const widget = proofrails.embed.widget('receipt-id', {
-  theme: 'light',
-  width: '100%',
-  height: '400px'
-});
+* **Repository**: [https://github.com/Elite-tch/Proofrails-sdk](https://github.com/Elite-tch/Proofrails-sdk)
+* **Contributing Guide**: See [CONTRIBUTING.md](./CONTRIBUTING.md) for local development workflows, code standards, and PR guidelines.
+* **Issues & Bug Reports**: [https://github.com/Elite-tch/Proofrails-sdk/issues](https://github.com/Elite-tch/Proofrails-sdk/issues)
+* **Documentation Portal**: Check out [docs/](./docs) or run `npm run dev` in `docs/` to view the full interactive developer portal.
 
-document.getElementById('receipt').innerHTML = widget.iframeHtml;
-```
-
-### Full Page URL
-
-```javascript
-const pageUrl = proofrails.embed.fullPage('receipt-id');
-```
-
-## Networks
-
-```javascript
-const proofrails = new ProofRails({
-  apiKey: 'your-key',
-  network: 'coston2'
-});
-```
-
-```javascript
-const proofrails = new ProofRails({
-  apiKey: 'your-key',
-  network: 'flare'
-});
-```
+---
 
 ## License
 
-MIT
-
-## Support
-
-* Documentation, [https://www.flarestudio.xyz/sdk/proofrails-sdk/overview](https://www.flarestudio.xyz/sdk/proofrails-sdk/overview)
-* Repository, [https://github.com/Elite-tch/Proofrails-sdk.git](https://github.com/Elite-tch/Proofrails-sdk.git)
-* Email, [izuchukwujohnbosco95@gmail.com](mailto:izuchukwujohnbosco95@gmail.com)
-
-**Made with ❤️ by ProofRails**
-
-```
+MIT License. Built for the Flare and ISO 20022 developer ecosystem.

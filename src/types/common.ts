@@ -2,9 +2,10 @@
  * Common types used across the SDK
  */
 
-export type Network = 'coston2' | 'flare';
+/** A middleware-supported blockchain network (for example flare, base, or ethereum). */
+export type Network = string;
 
-export type ReceiptStatus = 'pending' | 'anchored' | 'failed';
+export type ReceiptStatus = 'pending' | 'awaiting_anchor' | 'anchored' | 'failed';
 
 export interface SDKConfig {
     /** Your ProofRails API key */

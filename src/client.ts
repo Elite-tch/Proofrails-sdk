@@ -23,10 +23,10 @@ export class APIClient {
 
     constructor(config: SDKConfig = {}) {
         // Read from environment variable if available (Next.js)
-        const envBaseUrl = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PROOFRAILS_BASE_URL;
+        const envBaseUrl = typeof process !== 'undefined' && (process.env?.PROOFRAILS_BASE_URL || process.env?.NEXT_PUBLIC_PROOFRAILS_BASE_URL);
 
         // Production API endpoint
-        const defaultBaseUrl = 'https://proofrails-clone-middleware.onrender.com';
+        const defaultBaseUrl = 'http://localhost:8000';
 
         this.baseUrl = config.baseUrl || envBaseUrl || defaultBaseUrl;
         this.apiKey = config.apiKey;
@@ -54,6 +54,16 @@ export class APIClient {
 
     async delete<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         return this.request<T>('DELETE', endpoint, undefined, options);
+    }
+
+    async download(endpoint: string, options: RequestInit = {}): Promise<Blob> {
+        const { headers: optionHeaders, ...rest } = options;
+        const response = await fetch(`${this.baseUrl}${endpoint}`, {
+            ...rest,
+            headers: { ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}), ...((optionHeaders as Record<string, string>) || {}) },
+        });
+        if (!response.ok) throw new ProofRailsError(`HTTP ${response.status}: ${response.statusText}`, undefined, response.status);
+        return response.blob();
     }
 
     private async request<T>(
@@ -112,7 +122,10 @@ export class APIClient {
                 throw error;
             }
 
-            return await response.json();
+            const contentType = response.headers.get('content-type') || '';
+            return (contentType.includes('application/json')
+                ? await response.json()
+                : await response.text()) as T;
         } catch (error) {
             clearTimeout(timeoutId);
 

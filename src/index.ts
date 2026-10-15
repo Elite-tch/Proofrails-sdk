@@ -7,8 +7,10 @@
  * ```typescript
  * import ProofRails from '@proofrails/sdk';
  * 
- * // Create a new project
- * const { client, apiKey } = await ProofRails.createProject({ label: 'My App' });
+ * // Register a project with a SIWE message signed by the owner's wallet.
+ * const { client, apiKey } = await ProofRails.createProject({
+ *   name: 'My App', message, signature
+ * });
  * 
  * // Or use existing API key
  * const proofrails = new ProofRails({ apiKey: 'your-api-key' });

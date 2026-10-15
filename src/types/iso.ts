@@ -21,13 +21,19 @@ export interface ISOMessage {
 export interface GenerateStatementOptions {
     dateFrom?: string;
     dateTo?: string;
-    accountId?: string;
+    /** A narrower time range creates an intraday camt.052 statement. */
+    window?: string;
+    /** x402 payment JSON used by the middleware's premium statement endpoint. */
+    xPayment?: string;
 }
 
 export interface Statement {
     type: 'camt.052' | 'camt.053';
-    url: string;
-    downloadUrl: string;
-    messageId: string;
-    createdAt: string;
+    url?: string;
+    downloadUrl?: string;
+    messageId?: string;
+    createdAt?: string;
+    /** Current premium endpoint returns XML inline. */
+    xml?: string;
+    count?: number;
 }

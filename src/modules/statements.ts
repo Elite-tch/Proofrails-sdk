@@ -9,33 +9,35 @@ export class StatementsModule {
     constructor(private client: APIClient) { }
 
     async intraday(options: GenerateStatementOptions = {}): Promise<Statement> {
-        const response = await this.client.post<any>('/v1/iso/statement/camt052', {
-            date_from: options.dateFrom,
-            date_to: options.dateTo,
-            account_id: options.accountId,
-        });
+        const date = options.dateTo || options.dateFrom;
+        if (!date) throw new Error('A date is required to generate a camt.052 statement');
+        const response = await this.generate(date, options.window || '09:00-17:00', options.xPayment);
 
         return {
             type: 'camt.052',
-            url: response.url,
-            downloadUrl: response.download_url || response.url,
-            messageId: response.message_id || response.messageId,
-            createdAt: response.created_at || new Date().toISOString(),
+            xml: response.xml,
+            count: response.count,
         };
     }
 
     async endOfDay(options: GenerateStatementOptions = {}): Promise<Statement> {
-        const response = await this.client.post<any>('/v1/iso/statement/camt053', {
-            date: options.dateTo || options.dateFrom,
-            account_id: options.accountId,
-        });
+        const date = options.dateTo || options.dateFrom;
+        if (!date) throw new Error('A date is required to generate a camt.053 statement');
+        const response = await this.generate(date, undefined, options.xPayment);
 
         return {
             type: 'camt.053',
-            url: response.url,
-            downloadUrl: response.download_url || response.url,
-            messageId: response.message_id || response.messageId,
-            createdAt: response.created_at || new Date().toISOString(),
+            xml: response.xml,
+            count: response.count,
         };
+    }
+
+    private generate(date: string, window?: string, xPayment?: string): Promise<any> {
+        if (!xPayment) {
+            throw new Error('xPayment is required: statements are x402 premium middleware operations');
+        }
+        return this.client.post('/v1/x402/premium/generate-statement', { date, window }, {
+            headers: { 'X-PAYMENT': xPayment },
+        });
     }
 }
