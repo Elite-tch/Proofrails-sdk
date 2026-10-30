@@ -2,19 +2,19 @@
 
 **TypeScript & JavaScript SDK for creating blockchain-verifiable ISO 20022 payment records, cryptographic evidence bundles, and Flare on-chain anchors.**
 
-ProofRails converts on-chain payment transactions and agentic payments into banking-standard ISO 20022 XML messages (pain.001, pacs.008, camt.052, camt.053, and more), packages them into tamper-proof evidence ZIP bundles, and anchors their cryptographic hashes on Flare for trustless verification.
+ProofRails converts on-chain payment transactions and agentic payments into ISO 20022-style XML messages (pain.001, pacs.008, camt.052, camt.053, and more), packages them into evidence ZIP bundles, and anchors their cryptographic hashes on Flare for integrity verification.
 
 ---
 
 ## Key Capabilities
 
-* **ISO 20022 Compliant**: Generates 15 standard banking XML message types directly from on-chain transaction hashes.
-* **On-Chain Verification**: Evidence bundles are cryptographically anchored to the Flare EvidenceAnchor smart contract.
+* **ISO 20022 XML Generation**: Generates standard ISO 20022-style XML message types directly from on-chain transaction hashes.
+* **On-Chain Verification**: Evidence bundle hashes are cryptographically anchored to the Flare EvidenceAnchor smart contract for timestamping and integrity verification.
 * **Beginner-Friendly Templates**: Create payment, donation, escrow, grant, and refund receipts in 3 lines of code.
-* **Autonomous AI Agents**: Register AI agents, parse natural language commands, and anchor operational audit data on-chain.
-* **x402 Micropayments**: Native HTTP 402 payment-gated access using USDC on Base or FLR on Flare.
-* **Banking Statements**: Export official intraday (camt.052) and end-of-day (camt.053) account balance reports.
-* **Flare Native AI & FTSO**: Live decentralized price feeds and Flare Data Connector (FDC) Merkle attestations.
+* **Autonomous AI Agents**: Register AI agents, parse natural language commands, and anchor operational data on-chain without transmitting private keys.
+* **Transaction-Proof Paywall**: Protected middleware access using on-chain transaction proofs in the `X-PAYMENT` header.
+* **Financial Statements**: Export intraday (`camt.052`) and end-of-day (`camt.053`) account balance reports.
+* **Flare FTSO & FDC**: Endpoints for FTSO price queries and Flare Data Connector (FDC) attestation preparation.
 * **Real-Time Push Events**: Subscribe to Server-Sent Events (SSE) to track receipt anchoring in real time.
 * **React Hooks**: Built-in `useReceipt`, `useReceipts`, `useVerifyReceipt`, and `useX402Payment` for modern web apps.
 
@@ -23,11 +23,11 @@ ProofRails converts on-chain payment transactions and agentic payments into bank
 ## Installation
 
 ```bash
-npm install @proofrails/sdk viem
+npm install @proofrails/sdk
 # or
-pnpm add @proofrails/sdk viem
+pnpm add @proofrails/sdk
 # or
-yarn add @proofrails/sdk viem
+yarn add @proofrails/sdk
 ```
 
 ---

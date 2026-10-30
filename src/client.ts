@@ -2,7 +2,7 @@
  * Core HTTP client for ProofRails API
  */
 
-import type { SDKConfig } from './types/common';
+import type { SDKConfig, Network } from './types/common';
 import { ProofRailsError } from './types/common';
 
 export interface RateLimitInfo {
@@ -16,21 +16,23 @@ export class APIClient {
     private baseUrl: string;
     private apiKey?: string;
     private adminToken?: string;
+    private network: Network;
     private timeout: number;
     private retries: number;
     private retryDelay: number;
     private rateLimitInfo: RateLimitInfo | null = null;
 
     constructor(config: SDKConfig = {}) {
-        // Read from environment variable if available (Next.js)
+        // Read from environment variable if available
         const envBaseUrl = typeof process !== 'undefined' && (process.env?.PROOFRAILS_BASE_URL || process.env?.NEXT_PUBLIC_PROOFRAILS_BASE_URL);
 
-        // Production API endpoint
+        // Default endpoint
         const defaultBaseUrl = 'http://localhost:8000';
 
         this.baseUrl = config.baseUrl || envBaseUrl || defaultBaseUrl;
         this.apiKey = config.apiKey;
         this.adminToken = config.adminToken;
+        this.network = config.network || 'coston2';
         this.timeout = config.timeout || 30000;
         this.retries = config.retries ?? 3; // Default 3 retries
         this.retryDelay = config.retryDelay ?? 1000; // Default 1s delay
@@ -38,6 +40,14 @@ export class APIClient {
 
     getRateLimitInfo(): RateLimitInfo | null {
         return this.rateLimitInfo;
+    }
+
+    getNetwork(): Network {
+        return this.network;
+    }
+
+    setNetwork(network: Network): void {
+        this.network = network;
     }
 
     async get<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -57,12 +67,30 @@ export class APIClient {
     }
 
     async download(endpoint: string, options: RequestInit = {}): Promise<Blob> {
-        const { headers: optionHeaders, ...rest } = options;
+        const { headers: optionHeaders, method = 'GET', body, ...rest } = options;
+        const requestHeaders: Record<string, string> = {
+            ...((optionHeaders as Record<string, string>) || {}),
+        };
+
+        if (this.apiKey && !requestHeaders['X-API-Key']) {
+            requestHeaders['X-API-Key'] = this.apiKey;
+        }
+
+        if (this.adminToken && !requestHeaders['Authorization']) {
+            requestHeaders['Authorization'] = `Bearer ${this.adminToken}`;
+        }
+
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             ...rest,
-            headers: { ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}), ...((optionHeaders as Record<string, string>) || {}) },
+            method,
+            headers: requestHeaders,
+            body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
         });
-        if (!response.ok) throw new ProofRailsError(`HTTP ${response.status}: ${response.statusText}`, undefined, response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new ProofRailsError(`HTTP ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ''}`, undefined, response.status);
+        }
         return response.blob();
     }
 
@@ -74,30 +102,31 @@ export class APIClient {
         attempt: number = 0
     ): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
-        const headers: Record<string, string> = {
+        const { headers: optionHeaders, signal: optionSignal, ...restOptions } = options;
+
+        const requestHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
-            ...((options.headers as Record<string, string>) || {}),
+            ...((optionHeaders as Record<string, string>) || {}),
         };
 
-        if (this.apiKey) {
-            headers['X-API-Key'] = this.apiKey;
+        if (this.apiKey && !requestHeaders['X-API-Key']) {
+            requestHeaders['X-API-Key'] = this.apiKey;
         }
 
-        if (this.adminToken) {
-            headers['Authorization'] = `Bearer ${this.adminToken}`;
+        if (this.adminToken && !requestHeaders['Authorization']) {
+            requestHeaders['Authorization'] = `Bearer ${this.adminToken}`;
         }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
         try {
-            console.log(`[ProofRails SDK] ${method} ${url}${attempt > 0 ? ` (retry ${attempt}/${this.retries})` : ''}`);
             const response = await fetch(url, {
+                ...restOptions,
                 method,
-                headers,
-                body: body ? JSON.stringify(body) : undefined,
+                headers: requestHeaders,
+                body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
                 signal: controller.signal,
-                ...options,
             });
 
             clearTimeout(timeoutId);
@@ -114,8 +143,8 @@ export class APIClient {
                     errorData
                 );
 
-                // Retry on 5xx errors or rate limit (429)
-                if (this.shouldRetry(response.status, attempt)) {
+                // Retry on 5xx or 429 ONLY if safe (GET) or with enforced idempotency key
+                if (this.shouldRetry(response.status, attempt, method, requestHeaders)) {
                     return this.retryRequest(method, endpoint, body, options, attempt);
                 }
 
@@ -129,21 +158,22 @@ export class APIClient {
         } catch (error) {
             clearTimeout(timeoutId);
 
+            // If it's already a ProofRailsError, it was an HTTP error thrown above
+            // Do NOT retry HTTP 4xx errors as network errors!
             if (error instanceof ProofRailsError) {
-                // Retry on network errors
-                if (this.shouldRetry(0, attempt)) {
-                    return this.retryRequest(method, endpoint, body, options, attempt);
-                }
                 throw error;
             }
 
             if (error instanceof Error) {
                 if (error.name === 'AbortError') {
+                    if (this.shouldRetry(0, attempt, method, requestHeaders)) {
+                        return this.retryRequest(method, endpoint, body, options, attempt);
+                    }
                     throw new ProofRailsError(`Request timeout after ${this.timeout}ms`, 'TIMEOUT');
                 }
 
-                // Retry on network errors
-                if (this.shouldRetry(0, attempt)) {
+                // Retry on true network errors ONLY if safe or idempotent
+                if (this.shouldRetry(0, attempt, method, requestHeaders)) {
                     return this.retryRequest(method, endpoint, body, options, attempt);
                 }
 
@@ -154,8 +184,35 @@ export class APIClient {
         }
     }
 
-    private shouldRetry(statusCode: number, attempt: number): boolean {
+    private isIdempotent(method: string, headers: Record<string, string>): boolean {
+        // Safe HTTP methods are naturally idempotent
+        const upperMethod = method.toUpperCase();
+        if (upperMethod === 'GET' || upperMethod === 'HEAD' || upperMethod === 'OPTIONS') {
+            return true;
+        }
+
+        // Check for idempotency key header (case-insensitive)
+        for (const [key, value] of Object.entries(headers)) {
+            if (key.toLowerCase() === 'idempotency-key' && value && value.trim().length > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private shouldRetry(
+        statusCode: number,
+        attempt: number,
+        method: string,
+        headers: Record<string, string>
+    ): boolean {
         if (attempt >= this.retries) return false;
+
+        // Never retry mutations (POST/PUT/DELETE) without enforced idempotency
+        if (!this.isIdempotent(method, headers)) {
+            return false;
+        }
 
         // Retry on network errors (statusCode 0)
         if (statusCode === 0) return true;
@@ -177,7 +234,6 @@ export class APIClient {
         attempt: number
     ): Promise<T> {
         const delay = this.retryDelay * Math.pow(2, attempt); // Exponential backoff
-        console.log(`[ProofRails SDK] Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.request<T>(method, endpoint, body, options, attempt + 1);
     }
@@ -187,13 +243,13 @@ export class APIClient {
         const remaining = response.headers.get('X-RateLimit-Remaining');
         const reset = response.headers.get('X-RateLimit-Reset');
 
-        if (limit && remaining && reset) {
-            const resetTimestamp = parseInt(reset, 10);
+        if (limit !== null || remaining !== null || reset !== null) {
+            const resetTimestamp = reset ? parseInt(reset, 10) : 0;
             this.rateLimitInfo = {
-                limit: parseInt(limit, 10),
-                remaining: parseInt(remaining, 10),
+                limit: limit ? parseInt(limit, 10) : 0,
+                remaining: remaining ? parseInt(remaining, 10) : 0,
                 reset: resetTimestamp,
-                resetDate: new Date(resetTimestamp * 1000)
+                resetDate: new Date(resetTimestamp ? resetTimestamp * 1000 : Date.now()),
             };
         }
     }

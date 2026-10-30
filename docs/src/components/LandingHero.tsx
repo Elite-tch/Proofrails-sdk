@@ -34,27 +34,27 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenDocs }) => {
     {
       id: 'verification',
       title: 'On-Chain Verification',
-      desc: 'Cryptographically verify evidence bundles against Flare mainnet or testnet anchors with zero third-party trust required.',
+      desc: 'Cryptographically verify evidence bundle hashes against Flare smart contract anchors for tamper-proof timestamping and integrity.',
     },
     {
       id: 'agents',
       title: 'Autonomous AI Agents',
-      desc: 'Register and orchestrate AI agents that can pay for services, parse natural language commands, and anchor arbitrary operational data on-chain.',
+      desc: 'Register and orchestrate AI agents that can pay for services, parse natural language commands, and anchor operational data on-chain.',
     },
     {
       id: 'x402',
-      title: 'x402 Pay-Per-Request',
-      desc: 'Native client support for HTTP 402 payment-gated APIs. Pay with USDC on Base or FLR on Flare via simple header serialization.',
+      title: 'Transaction-Proof Paywall',
+      desc: 'Client support for middleware payment-gated APIs. Supply payment proofs in the X-PAYMENT header.',
     },
     {
       id: 'statements',
       title: 'Financial Statements',
-      desc: 'Generate banking-standard camt.052 intraday and camt.053 end-of-day account balance statements directly from on-chain history.',
+      desc: 'Generate ISO 20022 camt.052 intraday and camt.053 end-of-day account balance statements from on-chain history.',
     },
     {
       id: 'flare',
       title: 'Flare AI & FTSO Feeds',
-      desc: 'Access decentralized FTSO v2 exchange rates and prepare Merkle-backed Flare Data Connector (FDC) payment attestations.',
+      desc: 'Query FTSO v2 exchange rates and prepare Flare Data Connector (FDC) payment attestation requests.',
     },
     {
       id: 'events',
@@ -77,17 +77,17 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenDocs }) => {
         {/* Release Pill */}
         <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-mono text-slate-300 mb-6">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-          <span>ProofRails SDK v1.6.1</span>
+          <span>ProofRails SDK v1.6.2</span>
         </div>
 
         {/* Main Headline */}
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight mb-4">
-          Turn On-Chain Payments into Audit-Grade ISO Records
+          Turn On-Chain Payments into Verifiable ISO Records
         </h1>
 
         {/* Subtitle */}
         <p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-400 leading-relaxed mb-8">
-          The developer toolkit for generating bank-compatible payment evidence, anchoring cryptographic proofs on Flare, and integrating autonomous agent workflows.
+          The developer toolkit for generating ISO 20022-formatted payment evidence, anchoring cryptographic proofs on Flare, and integrating autonomous agent workflows.
         </p>
 
         {/* Action Button */}
@@ -173,10 +173,12 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenDocs }) => {
         {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {sdkFeatures.map((feat) => (
-            <div
+            <button
               key={feat.id}
               onClick={() => onOpenDocs(feat.id)}
-              className="flex flex-col rounded-lg border border-slate-800 bg-[#0c111c] p-4 transition hover:border-slate-700 hover:bg-slate-900/60 cursor-pointer"
+              id={`feature-card-${feat.id}`}
+              aria-label={`View ${feat.title} documentation`}
+              className="flex flex-col text-left rounded-lg border border-slate-800 bg-[#0c111c] p-4 transition hover:border-slate-700 hover:bg-slate-900/60 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#070a12]"
             >
               <h3 className="text-sm font-bold text-white mb-1.5">
                 {feat.title}
@@ -186,11 +188,11 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenDocs }) => {
                 {feat.desc}
               </p>
 
-              <div className="mt-4 flex items-center gap-1 text-xs font-medium text-indigo-400">
+              <div className="mt-4 flex items-center gap-1 text-xs font-medium text-indigo-400" aria-hidden="true">
                 <span>View Guide</span>
                 <span>→</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 

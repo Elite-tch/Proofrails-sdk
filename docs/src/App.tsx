@@ -50,6 +50,14 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col selection:bg-indigo-600 selection:text-white">
+      {/* Skip Navigation Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:rounded focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Universal Header */}
       <Header
         isDocsView={view === 'docs'}
@@ -61,7 +69,7 @@ export function App() {
 
       {/* Main Content Area */}
       {view === 'landing' ? (
-        <main className="flex-1">
+        <main id="main-content" className="flex-1" aria-label="Main content">
           <LandingHero onOpenDocs={(pageId) => navigateToDocs(pageId || 'quickstart')} />
         </main>
       ) : (
@@ -75,7 +83,7 @@ export function App() {
           />
 
           {/* Documentation Page Content */}
-          <main className="flex-1 min-w-0 px-4 sm:px-8 lg:px-12 py-8">
+          <main id="main-content" className="flex-1 min-w-0 px-4 sm:px-8 lg:px-12 py-8" aria-label="Documentation content">
             <DocPageView
               page={currentPage}
               onNavigatePage={handleSelectPage}

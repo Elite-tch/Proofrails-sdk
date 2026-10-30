@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { ProofRails } from './index';
-import type { SDKConfig } from './types/common';
+import type { SDKConfig, PaginatedResponse } from './types/common';
+import type { Receipt, ListReceiptsOptions } from './types/receipt';
+import type { VerificationResult } from './types/verification';
+import type { X402Payment, X402PaymentVerification } from './types/x402';
+import type { RateLimitInfo } from './client';
 
 // Context to hold the initialized SDK client
 const ProofRailsContext = createContext<ProofRails | null>(null);
@@ -8,6 +12,7 @@ const ProofRailsContext = createContext<ProofRails | null>(null);
 export interface ProofRailsProviderProps {
     apiKey?: string;
     config?: Omit<SDKConfig, 'apiKey'>;
+    client?: ProofRails;
     children: React.ReactNode;
 }
 
@@ -18,18 +23,35 @@ export interface ProofRailsProviderProps {
 export const ProofRailsProvider: React.FC<ProofRailsProviderProps> = ({
     apiKey,
     config = {},
-    children
+    client: clientProp,
+    children,
 }) => {
-    const [client, setClient] = useState<ProofRails | null>(null);
+    const [client, setClient] = useState<ProofRails | null>(() => {
+        if (clientProp) return clientProp;
+        if (apiKey || config.baseUrl || config.network) {
+            return new ProofRails({ apiKey, ...config });
+        }
+        return null;
+    });
+
+    const baseUrl = config.baseUrl;
+    const network = config.network;
+    const timeout = config.timeout;
+    const retries = config.retries;
+    const retryDelay = config.retryDelay;
+    const adminToken = config.adminToken;
 
     useEffect(() => {
-        // Initialize the client
+        if (clientProp) {
+            setClient(clientProp);
+            return;
+        }
         const instance = new ProofRails({
             apiKey,
             ...config,
         });
         setClient(instance);
-    }, [apiKey]);
+    }, [clientProp, apiKey, baseUrl, network, timeout, retries, retryDelay, adminToken]);
 
     if (!client) return null;
 
@@ -52,14 +74,13 @@ export const useProofRails = (): ProofRails => {
 };
 
 /**
- * Hook to handle payments
- * Matches your usage: import { useProofRailsPayment } ...
+ * Hook to handle payments via beginner-friendly templates
  */
 export const useProofRailsPayment = () => {
     const client = useProofRails();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
-    const [receipt, setReceipt] = useState<any | null>(null);
+    const [receipt, setReceipt] = useState<Receipt | null>(null);
 
     const createPayment = async (options: {
         amount: number;
@@ -67,6 +88,8 @@ export const useProofRailsPayment = () => {
         to: string;
         purpose: string;
         transactionHash: string;
+        chain?: string;
+        currency?: string;
     }) => {
         setIsLoading(true);
         setError(null);
@@ -85,65 +108,209 @@ export const useProofRailsPayment = () => {
 
     return {
         createPayment,
-        send: createPayment, // Alias to match docs
+        send: createPayment,
         receipt,
         isLoading,
-        error
+        error,
     };
 };
 
-/** Hook to fetch receipts list */
-export const useReceiptsList = (sdkOverride?: ProofRails) => {
+/**
+ * Hook to fetch receipts list with pagination
+ */
+export const useReceipts = (initialOptions?: ListReceiptsOptions, sdkOverride?: ProofRails) => {
     const contextSdk = useContext(ProofRailsContext);
     const client = sdkOverride || contextSdk;
 
-    const [receipts, setReceipts] = useState<any[]>([]);
+    const [receipts, setReceipts] = useState<Receipt[]>([]);
+    const [pagination, setPagination] = useState<{ total: number; page: number; limit: number }>({
+        total: 0,
+        page: 1,
+        limit: 20,
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
-    const fetch = async (options?: any) => {
+    const fetchReceipts = useCallback(async (options?: ListReceiptsOptions) => {
         if (!client) return;
         setLoading(true);
         setError(null);
         try {
-            // Support passing options to list() if SDK module supports it
-            // Assuming client.receipts.list(options)
-            const result = await client.receipts.list(options);
-            setReceipts(Array.isArray(result) ? result : (result as any).items || []);
+            const result = await client.receipts.list(options || initialOptions);
+            setReceipts(result.items || []);
+            setPagination({
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+            });
+            return result;
         } catch (err) {
-            setError(err instanceof Error ? err : new Error('Unknown error fetching receipts'));
+            const errorObj = err instanceof Error ? err : new Error('Unknown error fetching receipts');
+            setError(errorObj);
+            throw errorObj;
         } finally {
             setLoading(false);
         }
-    };
+    }, [client, initialOptions]);
 
-    return { fetch, receipts, loading, error };
+    useEffect(() => {
+        if (client) {
+            fetchReceipts(initialOptions).catch(() => {});
+        }
+    }, [client]);
+
+    return {
+        fetch: fetchReceipts,
+        receipts,
+        pagination,
+        loading,
+        error,
+    };
 };
 
-/** Hook to fetch single receipt details */
-export const useReceiptDetails = (sdkOverride?: ProofRails) => {
+/** Alias for useReceipts */
+export const useReceiptsList = useReceipts;
+
+/**
+ * Hook to fetch single receipt details
+ */
+export const useReceipt = (receiptId?: string, sdkOverride?: ProofRails) => {
     const contextSdk = useContext(ProofRailsContext);
     const client = sdkOverride || contextSdk;
 
-    const [receipt, setReceipt] = useState<any | null>(null);
+    const [receipt, setReceipt] = useState<Receipt | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
-    const fetch = async (id: string) => {
+    const fetchReceipt = useCallback(async (id: string) => {
         if (!client) return;
         setLoading(true);
         setError(null);
         try {
             const result = await client.receipts.get(id);
             setReceipt(result);
+            return result;
         } catch (err) {
-            setError(err instanceof Error ? err : new Error('Error fetching receipt'));
+            const errorObj = err instanceof Error ? err : new Error('Error fetching receipt');
+            setError(errorObj);
+            throw errorObj;
         } finally {
             setLoading(false);
         }
+    }, [client]);
+
+    useEffect(() => {
+        if (client && receiptId) {
+            fetchReceipt(receiptId).catch(() => {});
+        }
+    }, [client, receiptId]);
+
+    return {
+        fetch: fetchReceipt,
+        receipt,
+        loading,
+        error,
+    };
+};
+
+/** Alias for useReceipt */
+export const useReceiptDetails = useReceipt;
+
+/**
+ * Hook to verify a receipt on-chain
+ */
+export const useVerifyReceipt = (sdkOverride?: ProofRails) => {
+    const contextSdk = useContext(ProofRailsContext);
+    const client = sdkOverride || contextSdk;
+
+    const [result, setResult] = useState<VerificationResult | null>(null);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [error, setError] = useState<Error | null>(null);
+
+    const verifyById = async (receiptId: string): Promise<VerificationResult> => {
+        if (!client) throw new Error('ProofRails client not available');
+        setIsVerifying(true);
+        setError(null);
+        try {
+            const res = await client.verify.byReceiptId(receiptId);
+            setResult(res);
+            return res;
+        } catch (err) {
+            const errorObj = err instanceof Error ? err : new Error('Verification failed');
+            setError(errorObj);
+            throw errorObj;
+        } finally {
+            setIsVerifying(false);
+        }
     };
 
-    return { fetch, receipt, loading, error };
+    const verifyByHash = async (bundleHash: string): Promise<VerificationResult> => {
+        if (!client) throw new Error('ProofRails client not available');
+        setIsVerifying(true);
+        setError(null);
+        try {
+            const res = await client.verify.byHash(bundleHash);
+            setResult(res);
+            return res;
+        } catch (err) {
+            const errorObj = err instanceof Error ? err : new Error('Verification failed');
+            setError(errorObj);
+            throw errorObj;
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
+    return {
+        verify: verifyById,
+        verifyById,
+        verifyByHash,
+        result,
+        isVerifying,
+        error,
+    };
+};
+
+/**
+ * Hook to work with x402 payment proof headers and verifications
+ */
+export const useX402Payment = (sdkOverride?: ProofRails) => {
+    const contextSdk = useContext(ProofRailsContext);
+    const client = sdkOverride || contextSdk;
+
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [verification, setVerification] = useState<X402PaymentVerification | null>(null);
+    const [error, setError] = useState<Error | null>(null);
+
+    const getPaymentHeader = (payment: X402Payment) => {
+        if (!client) throw new Error('ProofRails client not available');
+        return client.x402.paymentHeader(payment);
+    };
+
+    const verifyPayment = async (payment: X402Payment) => {
+        if (!client) throw new Error('ProofRails client not available');
+        setIsVerifying(true);
+        setError(null);
+        try {
+            const res = await client.x402.verifyPayment(payment);
+            setVerification(res);
+            return res;
+        } catch (err) {
+            const errorObj = err instanceof Error ? err : new Error('Payment verification failed');
+            setError(errorObj);
+            throw errorObj;
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
+    return {
+        getPaymentHeader,
+        verifyPayment,
+        verification,
+        isVerifying,
+        error,
+    };
 };
 
 /** Hook to create project helper */
@@ -166,28 +333,12 @@ export const useCreateProject = () => {
     return { create, loading, error };
 };
 
-/** Hook for Form State Management (matches docs) */
-export const useProofRailsForm = () => {
-    const [apiKey, setApiKeyState] = useState('');
+/** Hook for in-memory Form State Management (never stores secrets in localStorage) */
+export const useProofRailsForm = (initialApiKey: string = '') => {
+    const [apiKey, setApiKey] = useState(initialApiKey);
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [purpose, setPurpose] = useState('');
-
-    // Load API Key from local storage on mount
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('proofrails_api_key');
-            if (saved) setApiKeyState(saved);
-        }
-    }, []);
-
-    // Save API key when it changes
-    const setApiKey = (key: string) => {
-        setApiKeyState(key);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('proofrails_api_key', key);
-        }
-    };
 
     const resetForm = () => {
         setRecipient('');
@@ -196,21 +347,23 @@ export const useProofRailsForm = () => {
     };
 
     return {
-        apiKey, setApiKey,
-        recipient, setRecipient,
-        amount, setAmount,
-        purpose, setPurpose,
-        resetForm
+        apiKey,
+        setApiKey,
+        recipient,
+        setRecipient,
+        amount,
+        setAmount,
+        purpose,
+        setPurpose,
+        resetForm,
     };
 };
 
-/** Hook for Rate Limit Info (Mock/Placeholder) */
-export const useRateLimitInfo = (sdkOverride?: ProofRails) => {
-    // Current SDK doesn't openly expose rate limit headers yet easily
-    // Returning dummy info to prevent crash
-    return {
-        limit: 1000,
-        remaining: 999,
-        reset: Date.now() + 3600000
-    };
+/** Hook for Rate Limit Info from response headers */
+export const useRateLimitInfo = (sdkOverride?: ProofRails): RateLimitInfo | null => {
+    const contextSdk = useContext(ProofRailsContext);
+    const client = sdkOverride || contextSdk;
+
+    if (!client) return null;
+    return client.getClient().getRateLimitInfo();
 };

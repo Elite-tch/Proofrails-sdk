@@ -32,6 +32,9 @@ import type {
 export class ProofRails {
     private client: APIClient;
 
+    /** Configured blockchain network */
+    public readonly network: Network;
+
     /** Project and API key management */
     public readonly project: ProjectsModule;
 
@@ -65,7 +68,7 @@ export class ProofRails {
     /** Webhooks, wallet monitoring, AI, Flare, auth, and operations endpoints. */
     public readonly platform: PlatformModule;
 
-    /** Beginner-friendly templates */
+    /** Beginner-friendly templates (configured with default SDK network) */
     public readonly templates: {
         payment: (options: PaymentTemplateOptions) => ReturnType<typeof createPaymentReceipt>;
         donation: (options: DonationTemplateOptions) => ReturnType<typeof createDonationReceipt>;
@@ -76,6 +79,7 @@ export class ProofRails {
 
     constructor(config: SDKConfig = {}) {
         this.client = new APIClient(config);
+        this.network = this.client.getNetwork();
 
         this.project = new ProjectsModule(this.client);
         this.admin = new AdminModule(this.client);
@@ -90,11 +94,11 @@ export class ProofRails {
         this.platform = new PlatformModule(this.client);
 
         this.templates = {
-            payment: (options) => createPaymentReceipt(this.receipts, options),
-            donation: (options) => createDonationReceipt(this.receipts, options),
-            escrow: (options) => createEscrowReceipt(this.receipts, options),
-            grant: (options) => createGrantReceipt(this.receipts, options),
-            refund: (options) => createRefundReceipt(this.receipts, options),
+            payment: (options) => createPaymentReceipt(this.receipts, options, this.network),
+            donation: (options) => createDonationReceipt(this.receipts, options, this.network),
+            escrow: (options) => createEscrowReceipt(this.receipts, options, this.network),
+            grant: (options) => createGrantReceipt(this.receipts, options, this.network),
+            refund: (options) => createRefundReceipt(this.receipts, options, this.network),
         };
     }
 
@@ -141,6 +145,20 @@ export class ProofRails {
      */
     setAdminToken(adminToken: string): void {
         this.client.setAdminToken(adminToken);
+    }
+
+    /**
+     * Get the active network
+     */
+    getNetwork(): Network {
+        return this.client.getNetwork();
+    }
+
+    /**
+     * Get the API client instance
+     */
+    getClient(): APIClient {
+        return this.client;
     }
 }
 

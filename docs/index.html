@@ -3,8 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ProofRails SDK — Documentation & Developer Hub</title>
-    <meta name="description" content="Official documentation for the ProofRails SDK. Convert on-chain transactions into ISO 20022 compliance records, cryptographic evidence bundles, and verifiable anchors on Flare." />
+    <title>ProofRails SDK — Documentation &amp; Developer Hub</title>
+    <meta name="description" content="Official documentation for the ProofRails SDK. Convert on-chain transactions into ISO 20022-formatted records, cryptographic evidence bundles, and verifiable anchors on Flare." />
+
+    <!-- Security Headers (via meta equivalents) -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()" />
+    <!-- Note: Content-Security-Policy (CSP) should be set via HTTP response headers in your hosting
+         provider (e.g. Netlify _headers, Vercel vercel.json, Cloudflare Pages _headers).
+         The meta CSP tag below provides partial browser protection while that is being configured. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none';" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />

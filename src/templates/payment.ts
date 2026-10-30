@@ -4,6 +4,7 @@
 
 import type { ReceiptsModule } from '../modules/receipts';
 import type { Receipt } from '../types/receipt';
+import type { Network } from '../types/common';
 
 export interface PaymentTemplateOptions {
     /** Payment amount */
@@ -16,25 +17,29 @@ export interface PaymentTemplateOptions {
     purpose: string;
     /** Blockchain transaction hash */
     transactionHash: string;
-    /** Sender's wallet address (optional, defaults to transaction sender) */
+    /** Sender's wallet address (optional, defaults to from) */
     senderWallet?: string;
-    /** Receiver's wallet address (optional, defaults to transaction receiver) */
+    /** Receiver's wallet address (optional, defaults to to) */
     receiverWallet?: string;
-    /** Chain/network (optional, auto-detected if not provided) */
-    chain?: 'coston2' | 'flare';
-    /** Currency (optional, auto-detected if not provided) */
+    /** Chain/network (optional, defaults to configured SDK network) */
+    chain?: Network;
+    /** Currency (optional, defaults to native network currency) */
     currency?: string;
 }
 
 export async function createPaymentReceipt(
     receiptsModule: ReceiptsModule,
-    options: PaymentTemplateOptions
+    options: PaymentTemplateOptions,
+    defaultNetwork: Network = 'coston2'
 ): Promise<Receipt> {
+    const chain = options.chain || defaultNetwork || 'coston2';
+    const currency = options.currency || (chain === 'coston2' ? 'C2FLR' : chain === 'base' ? 'USDC' : 'FLR');
+
     return receiptsModule.create({
         transactionHash: options.transactionHash,
-        chain: options.chain || 'coston2', // Smart default
+        chain,
         amount: options.amount,
-        currency: options.currency || 'C2FLR', // Smart default
+        currency,
         sender: options.senderWallet || options.from,
         receiver: options.receiverWallet || options.to,
         reference: `Payment: ${options.purpose} (Tx: ${options.transactionHash})`,

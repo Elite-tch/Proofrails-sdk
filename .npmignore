@@ -6,12 +6,15 @@ src/
 # Build configs
 tsconfig.json
 tsup.config.ts
+vitest.config.ts
 
 # Development
 node_modules/
 examples/
+tests/
 *.test.ts
 *.spec.ts
-
-# Docs
-BEGINNER_GUIDE.md
+.env
+.npm-cache
+middleware-ISO-v2.2-and-x402/
+docs/

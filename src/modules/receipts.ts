@@ -30,7 +30,8 @@ export class ReceiptsModule {
         };
 
         const response = await this.client.post<{ receipt_id: string; status: string; operation_id?: string }>(
-            '/v1/iso/record-tip', payload,
+            '/v1/iso/record-tip',
+            payload,
             options.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : {}
         );
 
@@ -67,7 +68,7 @@ export class ReceiptsModule {
             bundleHash: response.bundle_hash || response.bundleHash,
             bundleUrl: response.bundle_url,
             xmlUrl: response.xml_url,
-            projectId: response.project_id
+            projectId: response.project_id,
         };
     }
 
@@ -100,12 +101,21 @@ export class ReceiptsModule {
     }
 
     async getArtifacts(receiptId: string): Promise<ReceiptArtifacts> {
-        const messages = await this.client.get<ISOMessage[]>(`/v1/iso/messages/${receiptId}`);
+        const messages = await this.client.get<ISOMessage[]>(`/v1/iso/messages/${receiptId}`).catch(() => []);
         const baseUrl = this.client.getBaseUrl();
 
-        const artifacts: ReceiptArtifacts = {};
+        const artifactsMap: Record<string, string> = {};
+        const msgList = Array.isArray(messages) ? messages : [];
 
-        messages.forEach((msg) => {
+        const artifacts: ReceiptArtifacts = {
+            artifacts: artifactsMap,
+            messages: msgList,
+        };
+
+        msgList.forEach((msg) => {
+            if (msg.type && msg.url) {
+                artifactsMap[msg.type] = msg.url;
+            }
             switch (msg.type) {
                 case 'pain.001':
                     artifacts.pain001Url = msg.url;
@@ -119,13 +129,31 @@ export class ReceiptsModule {
                 case 'pain.008':
                     artifacts.pain008Url = msg.url;
                     break;
+                case 'pacs.002':
+                    artifacts.pacs002Url = msg.url;
+                    break;
+                case 'pacs.004':
+                    artifacts.pacs004Url = msg.url;
+                    break;
+                case 'pacs.008':
+                    artifacts.pacs008Url = msg.url;
+                    break;
+                case 'pacs.009':
+                    artifacts.pacs009Url = msg.url;
+                    break;
+                case 'camt.052':
+                    artifacts.camt052Url = msg.url;
+                    break;
+                case 'camt.053':
+                    artifacts.camt053Url = msg.url;
+                    break;
                 case 'camt.054':
                     artifacts.camt054Url = msg.url;
                     break;
             }
         });
 
-        const receipt = await this.client.get<any>(`/v1/iso/receipts/${receiptId}`);
+        const receipt = await this.client.get<any>(`/v1/iso/receipts/${receiptId}`).catch(() => ({}));
         artifacts.bundleUrl = receipt.bundle_url || `${baseUrl}/files/${receiptId}/evidence.zip`;
         artifacts.manifestUrl = `${baseUrl}/files/${receiptId}/manifest.json`;
 
@@ -135,7 +163,13 @@ export class ReceiptsModule {
     /** Poll the lightweight status endpoint while a receipt is processing. */
     async getStatus(receiptId: string): Promise<Pick<Receipt, 'id' | 'status' | 'bundleHash' | 'anchorTx' | 'anchoredAt'>> {
         const response = await this.client.get<any>(`/v1/iso/receipts/${receiptId}/status`);
-        return { id: response.id, status: response.status, bundleHash: response.bundle_hash, anchorTx: response.flare_txid, anchoredAt: response.anchored_at };
+        return {
+            id: response.id,
+            status: response.status,
+            bundleHash: response.bundle_hash,
+            anchorTx: response.flare_txid,
+            anchoredAt: response.anchored_at,
+        };
     }
 
     /** Re-queue a failed receipt for platform anchoring. */

@@ -2,7 +2,21 @@
  * Verification related types
  */
 
+export interface VerificationChecks {
+    /** True if receipt record exists */
+    receiptExists: boolean;
+    /** True if receipt record indicates anchored state */
+    statusAnchored: boolean;
+    /** True if bundle hash is present and valid hexadecimal */
+    bundleHashPresent: boolean;
+    /** True if cryptographic bundle hash was verified against the smart contract on Flare */
+    onChainVerified: boolean;
+    /** True if on-chain transaction ID matches the recorded anchor transaction */
+    transactionHashConfirmed?: boolean;
+}
+
 export interface VerificationResult {
+    /** Overall verification validity (requires on-chain verification confirmation) */
     valid: boolean;
     bundleHash: string;
     onChain: boolean;
@@ -10,6 +24,8 @@ export interface VerificationResult {
     blockNumber?: number;
     timestamp?: string;
     signature?: string;
+    checks?: VerificationChecks;
+    errors?: string[];
     details?: Record<string, unknown>;
 }
 

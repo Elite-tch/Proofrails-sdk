@@ -1,5 +1,5 @@
 /**
- * ISO 20022 message types
+ * ISO 20022 message types supported by ProofRails
  */
 
 export type ISOMessageType =
@@ -7,9 +7,19 @@ export type ISOMessageType =
     | 'pain.002'
     | 'pain.007'
     | 'pain.008'
+    | 'pain.013'
+    | 'pain.014'
+    | 'pacs.002'
+    | 'pacs.004'
+    | 'pacs.008'
+    | 'pacs.009'
+    | 'pacs.028'
+    | 'camt.029'
     | 'camt.052'
     | 'camt.053'
-    | 'camt.054';
+    | 'camt.054'
+    | 'camt.056'
+    | (string & {});
 
 export interface ISOMessage {
     type: ISOMessageType;
@@ -23,7 +33,7 @@ export interface GenerateStatementOptions {
     dateTo?: string;
     /** A narrower time range creates an intraday camt.052 statement. */
     window?: string;
-    /** x402 payment JSON used by the middleware's premium statement endpoint. */
+    /** Payment JSON used by the middleware's premium statement endpoint. */
     xPayment?: string;
 }
 
@@ -33,7 +43,7 @@ export interface Statement {
     downloadUrl?: string;
     messageId?: string;
     createdAt?: string;
-    /** Current premium endpoint returns XML inline. */
+    /** Premium statement endpoints may return XML inline. */
     xml?: string;
     count?: number;
 }

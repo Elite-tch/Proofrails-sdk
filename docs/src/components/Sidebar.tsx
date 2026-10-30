@@ -38,7 +38,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Backdrop */}
       {isOpenMobile && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Close navigation sidebar"
           onClick={onCloseMobile}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') onCloseMobile?.(); }}
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
         />
       )}
@@ -119,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sidebar Footer */}
         <div className="px-3.5 py-2.5 border-t border-slate-800 text-[11px] text-slate-500 flex items-center justify-between flex-shrink-0">
           <span>ProofRails SDK</span>
-          <span className="font-mono text-slate-400">v1.6.1</span>
+          <span className="font-mono text-slate-400">v1.6.2</span>
         </div>
       </aside>
     </>

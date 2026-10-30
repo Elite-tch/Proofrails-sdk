@@ -3,6 +3,7 @@
  */
 
 import type { Network, ReceiptStatus } from './common';
+import type { ISOMessage } from './iso';
 
 export interface CreateReceiptOptions {
     transactionHash: string;
@@ -39,8 +40,8 @@ export interface Receipt {
     operationId?: string;
     metadata?: Record<string, unknown>;
     tags?: string[];
-    bundleUrl?: string; // from API
-    xmlUrl?: string;    // from API
+    bundleUrl?: string;
+    xmlUrl?: string;
     // UI Helpers
     onChain?: boolean;
     valid?: boolean;
@@ -51,9 +52,19 @@ export interface ReceiptArtifacts {
     pain002Url?: string;
     pain007Url?: string;
     pain008Url?: string;
+    pacs002Url?: string;
+    pacs004Url?: string;
+    pacs008Url?: string;
+    pacs009Url?: string;
+    camt052Url?: string;
+    camt053Url?: string;
     camt054Url?: string;
     bundleUrl?: string;
     manifestUrl?: string;
+    /** Dynamic map of all artifact URLs indexed by ISO type (e.g. artifacts['pacs.008']) */
+    artifacts?: Record<string, string>;
+    /** Complete list of original ISO messages */
+    messages?: ISOMessage[];
 }
 
 export interface ListReceiptsOptions {
