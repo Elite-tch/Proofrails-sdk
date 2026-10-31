@@ -3,7 +3,7 @@ import { ProofRails } from './index';
 import type { SDKConfig, PaginatedResponse } from './types/common';
 import type { Receipt, ListReceiptsOptions } from './types/receipt';
 import type { VerificationResult } from './types/verification';
-import type { X402Payment, X402PaymentVerification } from './types/x402';
+import type { X402Payment, X402PaymentVerification, FXLookupOptions, X402RequestOptions } from './types/x402';
 import type { RateLimitInfo } from './client';
 
 // Context to hold the initialized SDK client
@@ -40,6 +40,8 @@ export const ProofRailsProvider: React.FC<ProofRailsProviderProps> = ({
     const retries = config.retries;
     const retryDelay = config.retryDelay;
     const adminToken = config.adminToken;
+    const flareRpcUrl = config.flareRpcUrl;
+    const privateKey = config.privateKey;
 
     useEffect(() => {
         if (clientProp) {
@@ -51,7 +53,7 @@ export const ProofRailsProvider: React.FC<ProofRailsProviderProps> = ({
             ...config,
         });
         setClient(instance);
-    }, [clientProp, apiKey, baseUrl, network, timeout, retries, retryDelay, adminToken]);
+    }, [clientProp, apiKey, baseUrl, network, timeout, retries, retryDelay, adminToken, flareRpcUrl, privateKey]);
 
     if (!client) return null;
 
@@ -304,9 +306,21 @@ export const useX402Payment = (sdkOverride?: ProofRails) => {
         }
     };
 
+    const premiumFxLookup = useCallback(async (options: FXLookupOptions = {}) => {
+        if (!client) throw new Error('ProofRails client not available');
+        return client.x402.premiumFxLookup(options);
+    }, [client]);
+
+    const fetchWithPayment = useCallback(async (endpoint: string, body?: unknown, options?: X402RequestOptions) => {
+        if (!client) throw new Error('ProofRails client not available');
+        return client.x402.fetchWithPayment(endpoint, body, options);
+    }, [client]);
+
     return {
         getPaymentHeader,
         verifyPayment,
+        premiumFxLookup,
+        fetchWithPayment,
         verification,
         isVerifying,
         error,

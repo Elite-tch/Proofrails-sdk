@@ -9,14 +9,14 @@ export interface VerificationChecks {
     statusAnchored: boolean;
     /** True if bundle hash is present and valid hexadecimal */
     bundleHashPresent: boolean;
-    /** True if cryptographic bundle hash was verified against the smart contract on Flare */
+    /** True if cryptographic bundle hash was verified against the smart contract on Flare via direct RPC */
     onChainVerified: boolean;
-    /** True if on-chain transaction ID matches the recorded anchor transaction */
+    /** True if on-chain transaction ID and event hash match the recorded anchor transaction */
     transactionHashConfirmed?: boolean;
 }
 
 export interface VerificationResult {
-    /** Overall verification validity (requires on-chain verification confirmation) */
+    /** Overall verification validity (requires on-chain verification confirmation via Flare RPC) */
     valid: boolean;
     bundleHash: string;
     onChain: boolean;
@@ -38,6 +38,13 @@ export interface VerificationProof {
     signature: string;
     network: string;
     contractAddress: string;
+}
+
+export interface VerifyReceiptOptions {
+    /** Optional RPC URL override for reading transaction receipts on Flare */
+    rpcUrl?: string;
+    /** Optional EvidenceAnchor contract address override */
+    contractAddress?: string;
 }
 
 export interface VerifyCidOptions {

@@ -76,14 +76,14 @@ if (verification.valid && verification.onChain) {
 
 The SDK checks:
 1. Receipt existence and anchored status.
-2. Independent cryptographic verification of the bundle hash against the on-chain smart contract.
+2. Direct Flare JSON-RPC read of the anchor transaction on chain 14, confirming status 1 and verifying the EvidenceAnchored event log contains the exact bundle hash.
 3. Transaction hash matching.
 
 ---
 
 ## 4. Private Key Custody & Signing
 
-The ProofRails SDK deliberately **does not** accept, store, or transmit private keys.
+The ProofRails SDK never transmits private keys over the wire.
 
 For autonomous agent anchoring or payment signing:
 - Use external signers (e.g. Turnkey, Privy, AWS KMS, or hardware wallets).

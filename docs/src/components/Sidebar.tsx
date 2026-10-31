@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sidebar Footer */}
         <div className="px-3.5 py-2.5 border-t border-slate-800 text-[11px] text-slate-500 flex items-center justify-between flex-shrink-0">
           <span>ProofRails SDK</span>
-          <span className="font-mono text-slate-400">v1.6.3</span>
+          <span className="font-mono text-slate-400">v1.6.4</span>
         </div>
       </aside>
     </>

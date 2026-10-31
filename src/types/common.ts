@@ -22,6 +22,11 @@ export interface SDKConfig {
     retries?: number;
     /** Delay between retries in milliseconds (default: 1000) */
     retryDelay?: number;
+    /** Flare JSON-RPC URL for direct on-chain verification (defaults to https://flare-api.flare.network/ext/C/rpc) */
+    flareRpcUrl?: string;
+    /** Signer or private key for automated x402 v2 payment challenges */
+    signer?: any;
+    privateKey?: string;
 }
 
 export interface APIResponse<T> {

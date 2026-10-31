@@ -1,6 +1,6 @@
 {
     "name": "@proofrails/sdk",
-    "version": "1.6.3",
+    "version": "1.6.4",
     "description": "Beginner-friendly SDK for ProofRails ISO 20022 Middleware - Create blockchain-verifiable payment receipts with zero coding knowledge",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
@@ -17,7 +17,9 @@
             "require": "./dist/react.js"
         }
     },
-    "dependencies": {},
+    "dependencies": {
+        "viem": "^2.57.13"
+    },
     "peerDependencies": {
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0"

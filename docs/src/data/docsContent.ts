@@ -489,7 +489,7 @@ handleTenantAnchor('ce620107-5389-432e-b2ad-ab80886402fb').catch(console.error);
     category: 'Cryptographic Verification',
     title: 'On-Chain Verification',
     lead: 'Trustless verification against the Flare EvidenceAnchor smart contract. Confirm proof integrity without trusting any intermediary.',
-    overview: 'Verification calculates the SHA-256 hash of the evidence bundle and verifies whether that exact 32-byte digest was recorded in the EvidenceAnchor contract on Flare. If confirmed, it returns the on-chain transaction ID and block confirmation timestamp.',
+    overview: 'Verification queries Flare JSON-RPC directly to inspect the transaction receipt on chain 14 and confirms that the EvidenceAnchored event log contains the exact 32-byte bundle hash. Rather than trusting backend endpoints alone, byReceiptId independently verifies the Flare contract state.',
     parameters: [
       { name: 'receiptId', type: 'string', required: true, description: 'UUID of the receipt stored in the middleware.' },
       { name: 'bundleHash', type: 'string', required: false, description: '0x-prefixed 32-byte hash of the evidence ZIP bundle.' },
@@ -683,7 +683,7 @@ parseUserInput().catch(console.error);`,
   x402: {
     id: 'x402',
     category: 'x402 Micropayments',
-    title: 'x402 Transaction-Proof Paywall',
+    title: 'x402 V2 Client & Micropayments',
     lead: 'ProofRails\' custom transaction-proof paywall helpers. Attach on-chain payment proofs to requests via the X-PAYMENT header to access protected middleware endpoints.',
     overview: 'NOTE: This module implements ProofRails\' own transaction-proof authorization scheme — it is NOT the IETF x402 v2 challenge-response protocol (PAYMENT-REQUIRED/PAYMENT-SIGNATURE). It serializes on-chain payment data as JSON into the X-PAYMENT header. When an endpoint requires payment, the client submits a transaction first, then attaches proof of that transaction to the request.',
 

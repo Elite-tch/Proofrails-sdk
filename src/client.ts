@@ -20,11 +20,15 @@ export class APIClient {
     private timeout: number;
     private retries: number;
     private retryDelay: number;
+    private flareRpcUrl: string;
+    private signer?: any;
+    private privateKey?: string;
     private rateLimitInfo: RateLimitInfo | null = null;
 
     constructor(config: SDKConfig = {}) {
         // Read from environment variable if available
         const envBaseUrl = typeof process !== 'undefined' && (process.env?.PROOFRAILS_BASE_URL || process.env?.NEXT_PUBLIC_PROOFRAILS_BASE_URL);
+        const envFlareRpc = typeof process !== 'undefined' && process.env?.FLARE_RPC_URL;
 
         // Default endpoint
         const defaultBaseUrl = 'http://localhost:8000';
@@ -36,6 +40,9 @@ export class APIClient {
         this.timeout = config.timeout || 30000;
         this.retries = config.retries ?? 3; // Default 3 retries
         this.retryDelay = config.retryDelay ?? 1000; // Default 1s delay
+        this.flareRpcUrl = config.flareRpcUrl || envFlareRpc || 'https://flare-api.flare.network/ext/C/rpc';
+        this.signer = config.signer;
+        this.privateKey = config.privateKey;
     }
 
     getRateLimitInfo(): RateLimitInfo | null {
@@ -48,6 +55,30 @@ export class APIClient {
 
     setNetwork(network: Network): void {
         this.network = network;
+    }
+
+    getFlareRpcUrl(): string {
+        return this.flareRpcUrl;
+    }
+
+    setFlareRpcUrl(url: string): void {
+        this.flareRpcUrl = url;
+    }
+
+    getSigner(): any {
+        return this.signer;
+    }
+
+    setSigner(signer: any): void {
+        this.signer = signer;
+    }
+
+    getPrivateKey(): string | undefined {
+        return this.privateKey;
+    }
+
+    setPrivateKey(key: string): void {
+        this.privateKey = key;
     }
 
     async get<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -64,6 +95,48 @@ export class APIClient {
 
     async delete<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         return this.request<T>('DELETE', endpoint, undefined, options);
+    }
+
+    async requestRaw(
+        method: string,
+        endpoint: string,
+        body?: unknown,
+        options: RequestInit = {}
+    ): Promise<Response> {
+        const url = `${this.baseUrl}${endpoint}`;
+        const { headers: optionHeaders, signal: optionSignal, ...restOptions } = options;
+
+        const requestHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+            ...((optionHeaders as Record<string, string>) || {}),
+        };
+
+        if (this.apiKey && !requestHeaders['X-API-Key']) {
+            requestHeaders['X-API-Key'] = this.apiKey;
+        }
+
+        if (this.adminToken && !requestHeaders['Authorization']) {
+            requestHeaders['Authorization'] = `Bearer ${this.adminToken}`;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+        try {
+            const response = await fetch(url, {
+                ...restOptions,
+                method,
+                headers: requestHeaders,
+                body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+                signal: optionSignal || controller.signal,
+            });
+            clearTimeout(timeoutId);
+            this.extractRateLimitInfo(response);
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+        }
     }
 
     async download(endpoint: string, options: RequestInit = {}): Promise<Blob> {
@@ -126,7 +199,7 @@ export class APIClient {
                 method,
                 headers: requestHeaders,
                 body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
-                signal: controller.signal,
+                signal: optionSignal || controller.signal,
             });
 
             clearTimeout(timeoutId);
