@@ -117,6 +117,33 @@ describe('X402Module (v2 Protocol & Legacy Helpers)', () => {
         expect(requestCount).toBe(2);
     });
 
+    it('throws UNSUPPORTED_PAYMENT_NETWORK when challenge only offers non-Flare networks (e.g. eip155:8453)', async () => {
+        const x402 = new X402Module(client);
+
+        // Challenge only offers Base (eip155:8453) — SDK must NOT fall back and sign with chainId:14
+        const baseOnlyChallenge: X402Challenge = {
+            x402Version: 2,
+            error: 'payment_required',
+            resource: { url: '/premium_fx_lookup' },
+            accepts: [
+                {
+                    scheme: 'exact',
+                    network: 'eip155:8453',  // Base mainnet — NOT Flare
+                    amount: '1000',
+                    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+                    payTo: '0x0A617D605a1010a74B8dA756E48D75bCef110ef4',
+                    maxTimeoutSeconds: 300,
+                },
+            ],
+        };
+
+        await expect(
+            x402.signEIP3009Payment(baseOnlyChallenge, TEST_PRIVATE_KEY)
+        ).rejects.toMatchObject({
+            code: 'UNSUPPORTED_PAYMENT_NETWORK',
+        });
+    });
+
     it('formats legacy transaction-proof payment headers correctly', () => {
         const x402 = new X402Module(client);
         const legacyProof = {

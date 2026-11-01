@@ -12,7 +12,7 @@ ProofRails converts on-chain payment transactions and agentic payments into ISO 
 * **On-Chain Verification**: Evidence bundle hashes are cryptographically anchored to the Flare EvidenceAnchor smart contract for timestamping and integrity verification.
 * **Beginner-Friendly Templates**: Create payment, donation, escrow, grant, and refund receipts in 3 lines of code.
 * **Autonomous AI Agents**: Register AI agents, parse natural language commands, and anchor operational data on-chain without transmitting private keys.
-* **Transaction-Proof Paywall**: Protected middleware access using on-chain transaction proofs in the `X-PAYMENT` header.
+* **x402 v2 Pay-Per-Request**: Official challenge-response paywall using EIP-3009 `TransferWithAuthorization` on Flare. `fetchWithPayment()` handles the full 402→sign→retry cycle automatically.
 * **Financial Statements**: Export intraday (`camt.052`) and end-of-day (`camt.053`) account balance reports.
 * **Flare FTSO & FDC**: Endpoints for FTSO price queries and Flare Data Connector (FDC) attestation preparation.
 * **Real-Time Push Events**: Subscribe to Server-Sent Events (SSE) to track receipt anchoring in real time.
@@ -210,14 +210,67 @@ console.log('Anchored Tx:', anchor.flare_txid);
 
 ---
 
-## x402 Pay-Per-Request Protocol
+
+---
+
+## x402 v2 Pay-Per-Request Protocol (EIP-3009 / Automated)
+
+The SDK implements the **official x402 v2 challenge-response protocol** using EIP-3009
+`TransferWithAuthorization` on Flare mainnet (Chain 14) with USD&#x20ae;0.
+
+The helper `fetchWithPayment()` handles the full flow automatically:
+1. Sends the request; intercepts the `402 Payment Required` response.
+2. Decodes the `PAYMENT-REQUIRED` challenge header.
+3. Signs a `TransferWithAuthorization` EIP-712 message with the provided key or wallet signer.
+4. Retries with the `PAYMENT-SIGNATURE` header containing the base64-encoded authorization.
 
 ```typescript
-// 1. Check endpoint pricing
+import { fetchWithPayment } from '@proofrails/sdk';
+
+// Automated end-to-end: sign and pay in one call
+const response = await fetchWithPayment(
+  'https://your-proofrails-instance.example.com/v1/premium/fx_lookup?base=USD&quote=FLR',
+  {},  // optional fetch RequestInit
+  process.env.PAYER_PRIVATE_KEY,  // 0x-prefixed 32-byte hex key
+);
+
+const data = await response.json();
+console.log('Rate:', data.rate, '| Source:', data.source);
+// Rate: 0.00610352 | Source: ftso
+```
+
+Or step-by-step with any EIP-712 signer (viem, ethers, wagmi):
+
+```typescript
+import { ProofRails } from '@proofrails/sdk';
+
+const proofrails = new ProofRails({ baseUrl: '...', apiKey: '...' });
+
+// 1. Check pricing
 const prices = await proofrails.x402.pricing();
 
-// 2. Serialize proof for HTTP header
-const paymentHeader = proofrails.x402.paymentHeader({
+// 2. Call premium endpoint — the SDK handles 402 automatically
+const fx = await proofrails.x402.premiumFxLookup(
+  process.env.PAYER_PRIVATE_KEY,      // or a viem/ethers signer object
+  { baseCcy: 'USD', quoteCcy: 'FLR' }
+);
+
+console.log('Rate:', fx.rate, '| Source:', fx.source);
+```
+
+> **Network safety**: If the server challenge does not include a Flare (eip155:14) +
+> USD&#x20ae;0 payment option, `fetchWithPayment()` throws `UNSUPPORTED_PAYMENT_NETWORK`
+> instead of silently signing for the wrong chain.
+
+### Legacy: Transaction-Hash Proof Header
+
+If your backend uses the **older** custom `X-PAYMENT` header flow (pre-x402 v2), use
+the explicit helper instead:
+
+```typescript
+import { createTransactionPaymentHeader } from '@proofrails/sdk';
+
+const xPayment = createTransactionPaymentHeader({
   txHash: '0xabc123...',
   amount: '0.01',
   recipient: '0x1234567890123456789012345678901234567890',
@@ -225,15 +278,11 @@ const paymentHeader = proofrails.x402.paymentHeader({
   chain: 'base',
 });
 
-// 3. Call premium operations
-const fx = await proofrails.x402.premiumFxLookup(
-  {
-    txHash: '0xabc123...',
-    amount: '0.01',
-    recipient: '0x1234567890123456789012345678901234567890',
-  },
-  { baseCcy: 'USD', quoteCcy: 'FLR' }
-);
+// Pass manually to the statements or any other endpoint
+const statement = await proofrails.statements.endOfDay({
+  dateFrom: '2026-10-14',
+  xPayment,
+});
 ```
 
 ---
@@ -244,7 +293,7 @@ const fx = await proofrails.x402.premiumFxLookup(
 // Export official end-of-day statement (camt.053)
 const statement = await proofrails.statements.endOfDay({
   dateFrom: '2026-10-14',
-  xPayment: paymentHeader,
+  // xPayment: xPayment,  // only needed for legacy X-PAYMENT backends
 });
 
 console.log('ISO camt.053 XML:', statement.xml);

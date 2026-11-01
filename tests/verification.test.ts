@@ -168,18 +168,126 @@ describe('VerificationModule', () => {
         expect(result.checks?.transactionHashConfirmed).toBe(true);
     });
 
-    it('fails verification if bundle hash is missing or invalid', async () => {
+    it('byReceiptId succeeds when flare_txid is returned without 0x prefix', async () => {
+        // Real ProofRails API may return txid as raw hex without 0x
+        const bundleHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+        const txidWithout0x = 'abc123456789012345678901234567890123456789012345678901234567890123';
+
         vi.spyOn(client, 'get').mockResolvedValueOnce({
-            id: 'rcpt_no_hash',
+            id: 'rcpt_no_prefix',
             status: 'anchored',
-            bundle_hash: '',
+            bundle_hash: bundleHash,
+            flare_txid: txidWithout0x, // Missing 0x!
+            anchored_at: '2026-02-01T12:00:00Z',
+        });
+
+        vi.spyOn(client, 'post').mockResolvedValueOnce({
+            matches_onchain: true,
+            bundle_hash: bundleHash,
+            flare_txid: txidWithout0x,
+            anchored_at: '2026-02-01T12:00:00Z',
+        });
+
+        const bundleHashWithout0x = bundleHash.slice(2);
+
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: RequestInit) => {
+            if (String(url).includes('mock-flare-rpc')) {
+                // SDK MUST normalize to 0x + txidWithout0x when making the RPC call
+                const body = JSON.parse((init as any)?.body || '{}');
+                expect(body.params[0]).toBe('0x' + txidWithout0x);
+
+                return new Response(JSON.stringify({
+                    jsonrpc: '2.0', id: 1,
+                    result: {
+                        status: '0x1',
+                        transactionHash: '0x' + txidWithout0x,
+                        logs: [{
+                            address: DEFAULT_ANCHOR_CONTRACT,
+                            topics: [ANCHOR_TOPIC0],
+                            data: '0x' + bundleHashWithout0x + '0000000000000000000000000000000000000000000000000000000065ba1234',
+                        }],
+                    },
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
+            return new Response('Not found', { status: 404 });
         });
 
         const verification = new VerificationModule(client);
-        const result = await verification.byReceiptId('rcpt_no_hash');
+        const result = await verification.byReceiptId('rcpt_no_prefix');
+
+        expect(result.valid).toBe(true);
+        expect(result.onChain).toBe(true);
+        expect(result.anchorTx).toBe('0x' + txidWithout0x);
+    });
+
+    it('byHash rejects with valid: false when backend returns matches_onchain: true but RPC receipt disagrees', async () => {
+        const bundleHash = '0xaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd';
+        const differentHash = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+        const txid = '0xflare_lying_backend_byhash';
+
+        // Backend says matches_onchain: true but with a flare_txid that has wrong data on chain
+        vi.spyOn(client, 'post').mockResolvedValueOnce({
+            matches_onchain: true, // LIE
+            bundle_hash: bundleHash,
+            flare_txid: txid,
+            anchored_at: '2026-10-01T00:00:00Z',
+        });
+
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+            if (String(url).includes('mock-flare-rpc')) {
+                return new Response(JSON.stringify({
+                    jsonrpc: '2.0', id: 1,
+                    result: {
+                        status: '0x1',
+                        transactionHash: txid,
+                        logs: [{
+                            address: DEFAULT_ANCHOR_CONTRACT,
+                            topics: [ANCHOR_TOPIC0],
+                            data: differentHash + '0000000000000000000000000000000000000000000000000000000065bbbbbb',
+                        }],
+                    },
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
+            return new Response('Not found', { status: 404 });
+        });
+
+        const verification = new VerificationModule(client);
+        const result = await verification.byHash(bundleHash);
 
         expect(result.valid).toBe(false);
-        expect(result.checks?.bundleHashPresent).toBe(false);
-        expect(result.errors).toContain('missing_bundle_hash');
+        expect(result.onChain).toBe(false);
+        expect(result.errors).toContain('anchor_log_hash_mismatch_on_flare');
+        expect(result.details?.apiMatchesOnchain).toBe(true); // backend lied; captured for transparency
+    });
+
+    it('byUrl rejects with valid: false when backend returns matches_onchain: true but RPC receipt is missing', async () => {
+        const bundleUrl = 'https://cdn.proofrails.io/bundles/rcpt_fake.zip';
+        const txid = '0xflare_lying_backend_byurl';
+
+        vi.spyOn(client, 'post').mockResolvedValueOnce({
+            matches_onchain: true, // LIE
+            bundle_hash: '0x5555666677778888555566667777888855556666777788885555666677778888',
+            flare_txid: txid,
+            anchored_at: '2026-10-01T00:00:00Z',
+        });
+
+        // RPC: tx not found at all
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+            if (String(url).includes('mock-flare-rpc')) {
+                return new Response(JSON.stringify({
+                    jsonrpc: '2.0', id: 1,
+                    result: null, // not on chain
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
+            return new Response('Not found', { status: 404 });
+        });
+
+        const verification = new VerificationModule(client);
+        const result = await verification.byUrl(bundleUrl);
+
+        expect(result.valid).toBe(false);
+        expect(result.onChain).toBe(false);
+        expect(result.errors).toContain('anchor_tx_not_found_on_flare');
+        expect(result.details?.apiMatchesOnchain).toBe(true); // captured for transparency
     });
 });

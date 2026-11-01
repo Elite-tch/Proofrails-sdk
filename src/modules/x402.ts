@@ -93,15 +93,26 @@ export class X402Module {
      * - Output: Base64 JSON containing x402Version: 2, resource, accepted, and payload (authorization + 65-byte signature)
      */
     async signEIP3009Payment(challenge: X402Challenge, signerOrKey: X402Signer): Promise<string> {
-        // Select matching EIP-3009 option from challenge
-        const option = challenge.accepts.find(
-            (o) =>
-                (o.network === 'eip155:14' || o.network === 'flare' || o.chain_id === 14) &&
-                (o.asset?.toLowerCase() === DEFAULT_FLARE_USDT0_ASSET.toLowerCase() || (o as any).token?.toLowerCase() === DEFAULT_FLARE_USDT0_ASSET.toLowerCase())
-        ) || challenge.accepts.find((o) => o.network === 'eip155:14') || challenge.accepts[0];
+        // Select matching EIP-3009 option from challenge.
+        // We strictly require eip155:14 (Flare mainnet) with USD₮0.
+        // Falling back to any other network is UNSAFE: it would produce a payload
+        // with the correct eip155:14 chainId domain but a foreign network identifier,
+        // creating an internally inconsistent and invalid payment.
+        const option =
+            challenge.accepts.find(
+                (o) =>
+                    (o.network === 'eip155:14' || o.network === 'flare' || o.chain_id === 14) &&
+                    (o.asset?.toLowerCase() === DEFAULT_FLARE_USDT0_ASSET.toLowerCase() ||
+                        (o as any).token?.toLowerCase() === DEFAULT_FLARE_USDT0_ASSET.toLowerCase()),
+            ) ?? challenge.accepts.find((o) => o.network === 'eip155:14' || o.chain_id === 14);
 
         if (!option) {
-            throw new ProofRailsError('No compatible payment option found in x402 challenge', 'NO_COMPATIBLE_OPTION', 402);
+            throw new ProofRailsError(
+                'No supported payment option found: this SDK currently supports EIP-3009 payment on Flare (eip155:14) with USD\u20ae0 (' + DEFAULT_FLARE_USDT0_ASSET + '). ' +
+                'The challenge only offered: ' + challenge.accepts.map((o) => o.network || o.chain_id).join(', '),
+                'UNSUPPORTED_PAYMENT_NETWORK',
+                400,
+            );
         }
 
         const asset = option.asset || (option as any).token || DEFAULT_FLARE_USDT0_ASSET;
