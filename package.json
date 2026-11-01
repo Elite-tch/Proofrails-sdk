@@ -51,7 +51,9 @@
     "overrides": {
         "esbuild": "^0.25.0",
         "tinypool": "^2.1.2",
-        "rollup": "^4.59.0"
+        "rollup": "^4.59.0",
+        "@vitest/mocker": "^4.1.12",
+        "vitest": "^4.1.12"
     },
     "keywords": [
         "iso20022",
@@ -78,6 +80,6 @@
         "@types/react": "^18.0.0",
         "tsup": "^8.0.0",
         "typescript": "^5.0.0",
-        "vitest": "^3.2.7"
+        "vitest": "^4.1.12"
     }
 }
